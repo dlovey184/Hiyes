@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>阿裕物流·記住密碼版 (PRO MAX v62)</title>
+    <style>
+        /* --- 變數與基礎 --- */
+        :root {
+            --primary-color: #1a73e8;
+            --bg-color: #f8f9fa;
+            --mod-color: #fff3e0;
+            --mod-btn-color: #f57f17; 
+            --del-color: #fce8e6;
+            --del-btn-color: #d93025; 
+            --sort-bg: #e3f2fd;
+            
+            --status-load: #1a73e8;
+            --status-ok: #1e8e3e;
+            --status-err: #d93025;
+            
+            --bg-default-blue: #1565c0; 
+            --bg-type-in: #34a853;      
+            --bg-type-out: #d93025;     
+            
+            --color-small: #ef6c00;     
+            --color-big: #5d4037;       
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; background-color: var(--bg-color); 
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        /* 登入頁面專用樣式 */
+        #login-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 300px;
+            background: white;
+            padding: 30px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .login-container h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .login-btn:active {
+            background: #0d47a1;
+        }
+        .login-error {
+            color: var(--del-btn-color);
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        /* 狀態列 */
+        #status-bar { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; 
+            color: white; text-align: center; padding: 6px; z-index: 9999; 
+            font-size: 13px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            user-select: none;
+        }
+        #toast {
+            visibility: hidden; min-width: 140px; background-color: rgba(0,0,0,0.85); color: #fff; text-align: center;
+            border-radius: 20px; padding: 10px 20px; position: fixed; z-index: 10000;
+            left: 50%; top: 50%; transform: translate(-50%, -50%); 
+            font-size: 16px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        #toast.show { visibility: visible; opacity: 1; }
+
+        .main-content { 
+            flex: 1; display: flex; flex-direction: column; 
+            padding: 5px 5px 60px 5px;
+            overflow: hidden;
+            background-color: #fff; 
+            position: relative;
+            height: 100%;
+        }
+        
+        .header-row {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; margin-bottom: 5px; flex-shrink: 0;
+            user-select: none;
+        }
+        h2 { font-size: 15px; color: var(--primary-color); margin: 0; }
+        
+        .btn-refetch-text {
+            background: none; border: 1px solid var(--primary-color); 
+            color: var(--primary-color); border-radius: 15px;
+            font-size: 12px; padding: 2px 10px; cursor: pointer; font-weight: bold;
+        }
+        .btn-refetch-text:active { background: #e8f0fe; }
+
+        .sidebar { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 50px; 
+            background: #fff; border-top: 1px solid #ccc; 
+            display: flex; justify-content: space-around; align-items: center; z-index: 1000; 
+            user-select: none;
+        }
+        .tab-btn { background: none; border: none; width: 100%; color: #5f6368; font-weight: bold; font-size: 11px; display: flex; flex-direction: column; align-items: center; padding: 5px 0; }
+        .tab-btn span { font-size: 18px; margin-bottom: 0px; }
+        .tab-btn.active { color: var(--primary-color); }
+
+        /* --- 表單元件 --- */
+        .form-group { margin-bottom: 5px; flex-shrink: 0; }
+        label { display: block; margin-bottom: 2px; font-weight: bold; color: #444; font-size: 13px; user-select: none;}
+        input, select, .type-btn, .btn-submit, .unit-btn, .btn-cancel { font-size: 15px; }
+        input, select { 
+            width: 100%; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
+            height: 38px;
+        }
+        
+        .unit-btn {
+            flex: 1;
+            text-align: center;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #f9f9f9;
+            cursor: pointer;
+            user-select: none;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .unit-btn.active-pieces { background: var(--primary-color); color: white; border-color: #0d3a82; font-weight: bold; }
+        .unit-btn.active-small { background: var(--color-small); color: white; border-color: #e65100; font-weight: bold; }
+        .unit-btn.active-big { background: var(--color-big); color: white; border-color: #3e2723; font-weight: bold; }
+
+        input[readonly] { background-color: #f1f3f4; color: #555; }        
+        input[readonly].auto-calc { background-color: #e8f0fe; color: var(--primary-color); font-weight: bold; border: 1px solid var(--primary-color); text-align: center; }
+
+        input.is-today { background-color: #174ea6 !important; color: white !important; border-color: #0d3a82; }
+        
+        .date-wrapper { display: flex; gap: 2px; align-items: center; width: 100%; }
+        .date-wrapper input { flex: 2; background: #fff9c4; border: 1px solid #fbc02d; text-align: center; font-weight: bold; padding: 0 2px; font-size: 15px; min-width: 0; height: 38px; }        
+        .week-select { flex: 1; border-radius: 4px; height: 38px; min-width: 40px; text-align: center; font-weight: bold; font-size: 12px; border: 1px solid transparent; padding: 0; appearance: none; -webkit-appearance: none; }
+        .wk-normal { background: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; }
+        .wk-sat { background: #e6f4ea; color: #1e8e3e; border: 1px solid #34a853; }
+        .wk-sun { background: #fce8e6; color: #d93025; border: 1px solid #ea4335; }
+
+        .type-group { display: flex; gap: 4px; }
+        .type-btn { flex: 1; padding: 4px; border: 1px solid #ccc; border-radius: 4px; text-align: center; height: 38px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+        .active-in { background: #e6f4ea; border-color: #34a853; color: #1e8e3e; font-weight: bold; border-width: 2px; }
+        .active-out { background: #fce8e6; border-color: #ea4335; color: #d93025; font-weight: bold; border-width: 2px; }
+
+        .row-group { display: flex; gap: 4px; margin-bottom: 5px; }        
+        .col-amt, .col-cnt { flex: 1; } 
+        .col-mult { flex: 0; width: 0; opacity: 0; overflow: hidden; transition: flex 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease; }
+        .col-mult.show { flex: 0.8; margin-left: 2px; opacity: 1; } 
+
+        /* --- 名稱區塊：可內部滾動 --- */
+        #name-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+        .name-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .field-select {
+            width: 80px;
+            flex-shrink: 0;
+            font-size: 13px;
+            padding: 4px 2px;
+            height: 38px;
+            border-radius: 4px;
+            border: 1px solid var(--primary-color);
+            background: white;
+            font-weight: 500;
+            color: #0d3a82;
+        }
+        .name-row .name-inp {
+            flex: 1;
+            height: 38px;
+        }
+
+        /* 按鈕列：送出與取消並排 */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+        .btn-submit, .btn-cancel {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        .btn-submit {
+            background: var(--primary-color);
+            color: white;
+        }
+        .btn-submit.mod-mode {
+            background: var(--mod-btn-color);
+            border: 2px solid #e65100;
+        }
+        .btn-submit.offline-mode {
+            background: #5f6368;
+        }
+        .btn-cancel {
+            background: #ccc;
+            color: #333;
+            display: none; /* 預設隱藏 */
+        }
+        .btn-cancel.show {
+            display: block; /* 修改模式顯示 */
+        }
+
+        /* 查詢頁樣式 */
+        .query-layout { display: flex; flex-direction: column; height: 100%; }        
+        .filter-area { background: #f8f9fa; padding: 4px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 2px; flex-shrink: 0; }
+        .filter-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; justify-content: space-between;} 
+        .filter-row:last-child { margin-bottom: 0; }
+        .sel-default-blue { background-color: var(--bg-default-blue) !important; color: white !important; border: 1px solid #0d3a82; }
+        .sel-in-green { background-color: var(--bg-type-in) !important; color: white !important; border: 1px solid #2d8f47; }
+        .sel-out-red { background-color: var(--bg-type-out) !important; color: white !important; border: 1px solid #b3261e; }
+        .sel-unit-small { background-color: var(--color-small) !important; color: white !important; border: 1px solid #e65100; }
+        .sel-unit-big { background-color: var(--color-big) !important; color: white !important; border: 1px solid #3e2723; }
+        .bg-month { background-color: #bbdefb; }
+        .sel-driver { flex: 2; transition: all 0.2s; }
+        .sel-type, .sel-unit { flex: 1; transition: all 0.2s; }        
+        .date-row-group { display: flex; width: 100%; gap: 4px; }        
+        .sel-date { flex: 1; transition: all 0.3s; } 
+        .sel-date.shrink { flex: 0 0 85px; } 
+        .range-container { display: none; flex: 1; gap: 4px; align-items: center; width: 100%; }
+        .range-group { flex: 1; display: flex; gap: 1px; min-width: 0; }        
+        .range-group input[type="date"] { flex: 1; min-width: 0; padding: 0; text-align: center; font-size: 11px; background: #fff9c4; border: 1px solid #fbc02d; border-radius: 4px 0 0 4px; height: 38px; }
+        .range-group select.week-select { flex: 0 0 32px; min-width: 32px; padding: 0; font-size: 12px; border-radius: 0 4px 4px 0; height: 38px; }        
+        .stats-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 6px; border-bottom: 1px solid #eee; font-size: 13px; font-weight: bold; flex-shrink: 0; margin-bottom: 2px; user-select: none; }
+        .stat-group { display: flex; gap: 15px; }
+        .stat-count { color: #000; }
+        .stat-out { color: var(--del-btn-color); } 
+        .stat-in { color: #1e8e3e; } 
+        .action-bar { display: flex; gap: 6px; margin-bottom: 4px; padding: 4px; background: #f1f3f4; border-radius: 4px; justify-content: space-between; align-items: center; flex-shrink: 0; user-select: none;}
+        .act-btn { flex: 1; padding: 6px; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; color: #555;}
+        .act-btn.active-mod { background: var(--mod-btn-color); color: white; border-color: var(--mod-btn-color); }
+        .act-btn.active-del { background: var(--del-btn-color); color: white; border-color: var(--del-btn-color); }
+        .action-confirm-btn { display: none; padding: 6px 12px; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px;}
+        .confirm-mod { background: var(--mod-btn-color); }
+        .confirm-del { background: var(--del-btn-color); }
+
+        .table-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; border: 1px solid #eee; position: relative; user-select: text; -webkit-user-select: text; }        
+        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }        
+        th { position: sticky; top: 0; z-index: 10; background: #f1f3f4; color: #333; padding: 4px 1px; font-size: 11px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); cursor: pointer; user-select: text; -webkit-user-select: text; }        
+        .th-date { width: 72px; } .th-type { width: 25px; } .th-unit { width: 32px; } .th-mult { width: 32px; } .th-amt  { width: 38px; } .th-name { width: auto; text-align: left; padding-left: 5px; }
+        td { border-bottom: 1px solid #eee; padding: 0px 0; text-align: center; height: 26px; line-height: 26px; color: #333; position: relative; } 
+        #tbody tr:last-child td { padding-bottom: 0; height: 26px; }
+        .td-date { padding-left: 14px; text-align: left; font-size: 11px; white-space: nowrap; }         
+        .offline-icon { position: absolute; left: 1px; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; width: 12px; }
+        .text-unit-small { color: var(--color-small) !important; font-weight: bold; } 
+        .text-unit-big   { color: var(--color-big) !important; font-weight: bold; }   
+        .date-col-sorted { background-color: var(--sort-bg); }
+        .name-scroll { width: 100%; overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; }
+        .name-scroll::-webkit-scrollbar { display: none; }
+        .mode-mod-row { background: var(--mod-color) !important; border-left: 3px solid var(--mod-btn-color); }
+        .mode-del-row { background: var(--del-color) !important; border-left: 3px solid var(--del-btn-color); }
+        .offline-row { background-color: #ffe6e6 !important; color: #333; }
+        .page { display: none; height: 100%; flex-direction: column; }
+        .page.active { display: flex; }        
+        #mod-indicator { display: none; background: var(--mod-color); color: var(--mod-btn-color); padding: 5px; text-align: center; font-weight: bold; border-bottom: 1px solid var(--mod-btn-color); flex-shrink: 0; font-size: 13px;}
+    </style>
+</head>
+<body>
+
+<!-- 登入頁面 -->
+<div id="login-page">
+    <div class="login-container">
+        <h2>阿裕物流 登入</h2>
+        <input type="text" id="login-username" class="login-input" placeholder="司機帳號" value="尤創裕">
+        <input type="password" id="login-password" class="login-input" placeholder="密碼">
+        <button class="login-btn" onclick="login()">登入</button>
+        <div id="login-error" class="login-error"></div>
+    </div>
+</div>
+
+<!-- 主應用程式容器 (初始隱藏) -->
+<div id="app-container" style="display: none; height: 100%;">
+    <div id="status-bar"></div>
+    <div id="toast">提示訊息</div>
+    <div id="mod-indicator">✏️ 正在修改資料...</div>
+
+    <div class="main-content">
+        <!-- 填報頁 -->
+        <div id="input-page" class="page active">
+            <h2>運務填報</h2>
+            
+            <div class="form-group"><label>司機</label><input type="text" id="driver" readonly></div>
+
+            <div class="form-group">
+                <label>日期</label>
+                <div class="date-wrapper">
+                    <input type="date" id="date" onchange="checkTodayColor(this); updateWeek('date', 'week-day')">
+                    <select id="week-day" class="week-select wk-normal" onchange="changeDateByWeek('date', 'week-day')">
+                        <option value="1">週一</option><option value="2">週二</option><option value="3">週三</option>
+                        <option value="4">週四</option><option value="5">週五</option><option value="6">週六</option>
+                        <option value="0">週日</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>收送</label>
+                <div class="type-group">
+                    <div id="btn-out" class="type-btn" onclick="setType('送')">送</div>
+                    <div id="btn-in" class="type-btn" onclick="setType('收')">收</div>
+                </div>
+                <input type="hidden" id="type">
+            </div>
+
+            <!-- 單位按鈕 -->
+            <div class="row-group unit-btn-row" style="margin-bottom: 5px;">
+                <div class="unit-btn" id="unit-btn-pieces" onclick="setUnit('件數')">件數</div>
+                <div class="unit-btn" id="unit-btn-small" onclick="setUnit('小板')">小板</div>
+                <div class="unit-btn" id="unit-btn-big" onclick="setUnit('大板')">大板</div>
+            </div>
+
+            <!-- 倍數、數量、筆數 -->
+            <div class="row-group" style="margin-bottom: 5px;">
+                <div id="mult-wrap" class="form-group col-mult">
+                    <label>倍數</label>
+                    <input type="number" id="mult" value="1" step="0.1" inputmode="decimal" 
+                           enterkeyhint="next"
+                           onfocus="this.select()" 
+                           onblur="if(this.value=='')this.value='1';calc()" 
+                           oninput="calc()"
+                           onkeydown="handleEnterOnInput(event, 'mult')">
+                </div>
+                <div class="form-group col-amt">
+                    <label>數量</label>
+                    <input type="tel" id="amt" placeholder="量" 
+                           enterkeyhint="next"
+                           onkeydown="handleEnterOnInput(event, 'amt')" 
+                           oninput="this.value=this.value.replace(/[^\d]/g,'');">
+                </div>
+                <div class="form-group col-cnt">
+                    <label>筆數 (可略)</label>
+                    <input type="tel" id="cnt" placeholder="筆" readonly onclick="this.readOnly=false;" oninput="this.value=this.value.replace(/[^\d]/g,'');">
+                </div>
+            </div>
+
+            <!-- 名稱區塊 -->
+            <div class="form-group" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                <label>名稱欄名 (左側下拉選擇欄名，智慧選單只顯示對應的名稱值)</label>
+                <div id="name-container"></div>
+            </div>
+            
+            <!-- 按鈕列：送出與取消並排 -->
+            <div class="action-buttons">
+                <button class="btn-submit" id="btn-submit" onclick="sendData()">💾 送出</button>
+                <button class="btn-cancel" id="btn-cancel-mod" onclick="cancelModify()">取消修改</button>
+            </div>
+        </div>
+
+        <!-- 查詢頁 (移除欄名與關鍵字篩選) -->
+        <div id="query-page" class="page">
+            <div class="query-layout">
+                <div class="header-row">
+                    <h2>查詢紀錄</h2>
+                    <button class="btn-refetch-text" onclick="manualRefetch()">🔄 重新提取</button>
+                </div>
+                <div class="filter-area">
+                    <div class="filter-row">
+                        <select id="filter-driver" class="sel-driver" onchange="applyFilters()"><option value="All">全部司機</option></select>
+                        <select id="filter-type" class="sel-type" onchange="applyFilters()"><option value="All">全收送</option><option value="收">收</option><option value="送">送</option></select>
+                        <select id="filter-unit" class="sel-unit" onchange="applyFilters()"><option value="All">全單位</option><option value="件數">件數</option><option value="大板">大板</option><option value="小板">小板</option></select>
+                    </div>
+                    <div class="date-row-group">
+                        <select id="filter-date-mode" class="sel-date" onchange="toggleFilterDate()">
+                            <option value="today">當日</option><option value="yesterday">昨日</option>
+                            <option value="thisMonth">當月</option><option value="lastMonth">上月</option>
+                            <option value="range">範圍</option>
+                        </select>
+                        <div id="filter-range-container" class="range-container">
+                            <div class="range-group">
+                                <input type="date" id="filter-start" onchange="checkTodayColor(this); updateWeek('filter-start', 'wk-start'); applyFilters()">
+                                <select id="wk-start" class="week-select wk-normal" onchange="changeDateByWeek('filter-start', 'wk-start'); applyFilters()">
+                                    <option value="1">一</option><option value="2">二</option><option value="3">三</option>
+                                    <option value="4">四</option><option value="5">五</option><option value="6">六</option>
+                                    <option value="0">日</option>
+                                </select>
+                            </div>
+                            <div class="range-group">
+                                <input type="date" id="filter-end" onchange="checkTodayColor(this); updateWeek('filter-end', 'wk-end'); applyFilters()">
+                                <select id="wk-end" class="week-select wk-normal" onchange="changeDateByWeek('filter-end', 'wk-end'); applyFilters()">
+                                    <option value="1">一</option><option value="2">二</option><option value="3">三</option>
+                                    <option value="4">四</option><option value="5">五</option><option value="6">六</option>
+                                    <option value="0">日</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat-count">筆數: <span id="stat-cnt">0</span></div>
+                    <div class="stat-group">
+                        <div class="stat-item stat-out" id="box-out">送: <span id="stat-out">0</span></div>
+                        <div class="stat-item stat-in" id="box-in">收: <span id="stat-in">0</span></div>
+                    </div>
+                </div>
+                <div class="action-bar">
+                    <div style="display:flex; gap:6px; flex:1;">
+                        <button id="act-mod" class="act-btn" onclick="toggleMode('mod')">修改</button>
+                        <button id="act-del" class="act-btn" onclick="toggleMode('del')">刪除</button>
+                    </div>
+                    <button id="btn-confirm-mod" class="action-confirm-btn confirm-mod" onclick="confirmModify()">開始修改</button>
+                    <button id="btn-confirm-del" class="action-confirm-btn confirm-del" onclick="confirmDelete()">確認刪除</button>
+                    <span id="sel-count" style="font-size:12px; color:#666; display:none;">已選 0</span>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th class="th-date" onclick="toggleDateSort()">日期 <span id="sort-icon" style="font-size:10px">▲</span></th>
+                                <th class="th-type">貨態</th>
+                                <th class="th-unit">單位</th>
+                                <th class="th-mult">倍數</th>
+                                <th class="th-amt">數量</th>
+                                <th class="th-name">名稱</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <button id="btn-input" class="tab-btn active" onclick="showPage('input-page')"><span>✍️</span>填報</button>
+        <button id="btn-query" class="tab-btn" onclick="showPage('query-page')"><span>📋</span>查詢</button>
+    </div>
+</div>
+
+<script>
+    // ---------- 全球變數 ----------
+    const API_URL = 'https://script.google.com/macros/s/AKfycbznZBIT1JTV6VbYEfkmtINK_Eto3yoeccsQsBvec6G389lnel1D-z_1kHTjDEY0BssJ2g/exec';
+    let rawData = [];
+    let offlineData = []; 
+    let displayData = []; 
+    let baseAmt = 0;
+    let currentMode = 'none';
+    let selectedIds = new Set();
+    let modifyTargetId = null;
+    let isSortedAsc = true; 
+    let todayYMD = new Date().toLocaleDateString('en-CA');
+    let currentUnit = '';          // 當前選擇的單位
+    const MAX_NAME_ROWS = 5;        // 最多5個名稱輸入
+    let currentDriver = '';         // 當前登入的司機
+
+    // 離線資料初始化
+    try { const saved = localStorage.getItem('offlineData'); if(saved) offlineData = JSON.parse(saved); const cachedRaw = localStorage.getItem('rawDataCache'); if(cachedRaw) rawData = JSON.parse(cachedRaw); } catch(e) {}
+
+    // ---------- 登入函數 ----------
+    function login(remember = true) {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        const errorDiv = document.getElementById('login-error');
+
+        if (!username || !password) {
+            errorDiv.innerText = '請輸入帳號與密碼';
+            return;
+        }
+
+        errorDiv.innerText = '登入中...';
+
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'login',
+                driver: username,
+                password: password
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 記住帳密 (如果 remember 為 true)
+                if (remember) {
+                    localStorage.setItem('savedUsername', username);
+                    localStorage.setItem('savedPassword', password);
+                }
+                handleLoginSuccess(username);
+            } else {
+                errorDiv.innerText = data.error || '登入失敗';
+                // 清除可能錯誤的儲存
+                localStorage.removeItem('savedUsername');
+                localStorage.removeItem('savedPassword');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            errorDiv.innerText = '網路錯誤，請稍後再試';
+        });
+    }
+
+    function handleLoginSuccess(driver) {
+        currentDriver = driver;
+        document.getElementById('driver').value = driver;
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        initApp();
+    }
+
+    function checkLogin() {
+        const savedUsername = localStorage.getItem('savedUsername');
+        const savedPassword = localStorage.getItem('savedPassword');
+        if (savedUsername && savedPassword) {
+            // 自動填入並嘗試登入
+            document.getElementById('login-username').value = savedUsername;
+            document.getElementById('login-password').value = savedPassword;
+            // 呼叫 login 但不重複記住 (避免覆蓋)
+            login(false); // 傳 false 表示不重複儲存
+        } else {
+            document.getElementById('login-page').style.display = 'flex';
+            document.getElementById('app-container').style.display = 'none';
+        }
+    }
+
+    // ---------- 初始化主應用 ----------
+    function initApp() {
+        updateOnlineStatus();
+        todayYMD = new Date().toLocaleDateString('en-CA');
+        
+        const dateInput = document.getElementById('date');
+        dateInput.value = todayYMD;
+        checkTodayColor(dateInput);
+        updateWeek('date', 'week-day');
+        
+        document.getElementById('filter-date-mode').value = 'today';
+        toggleFilterDate(); 
+        
+        const endInput = document.getElementById('filter-end');
+        endInput.value = todayYMD;
+        checkTodayColor(endInput);
+        
+        let startDay = new Date();
+        startDay.setDate(startDay.getDate() - 1);
+        const startInput = document.getElementById('filter-start');
+        startInput.value = startDay.toLocaleDateString('en-CA');
+        checkTodayColor(startInput);
+
+        updateWeek('filter-start', 'wk-start');
+        updateWeek('filter-end', 'wk-end');
+
+        clearUnitSelection();
+        renderNameRows([]);
+
+        if(rawData.length > 0) updateSmartDropdowns();
+
+        fetchData();
+        if(navigator.onLine) syncOfflineData();
+    }
+
+    // ---------- 通用函數 ----------
+    function showStatus(msg, type, autoHide = 0) {
+        const el = document.getElementById('status-bar'); el.innerText = msg; el.style.display = 'block';
+        if (type === 'load') el.style.backgroundColor = 'var(--status-load)'; else if (type === 'ok') el.style.backgroundColor = 'var(--status-ok)'; else if (type === 'err') el.style.backgroundColor = 'var(--status-err)'; 
+        if (autoHide > 0) setTimeout(() => { el.style.display = 'none'; }, autoHide);
+    }
+    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.className = 'show'; setTimeout(() => { t.className = t.className.replace('show', ''); }, 2000); }
+    window.addEventListener('online', () => { updateOnlineStatus(); syncOfflineData(); });
+    window.addEventListener('offline', updateOnlineStatus);
+    function updateOnlineStatus() {
+        if (!navigator.onLine) showStatus('⚠️ 無網路連線 - 啟用離線模式', 'err', 0); else document.getElementById('status-bar').style.display = 'none';
+        const btn = document.getElementById('btn-submit');
+        if(!navigator.onLine && !modifyTargetId) { btn.innerText = "💾 送出 (離線)"; btn.classList.add('offline-mode'); } 
+        else { btn.classList.remove('offline-mode'); if(!modifyTargetId) btn.innerText = "💾 送出"; }
+    }
+    function checkTodayColor(input) { if (input.value === todayYMD) input.classList.add('is-today'); else input.classList.remove('is-today'); }
+    function updateWeekDayOptions(dateStr) {
+        const weekSelect = document.getElementById('week-day'); if (!weekSelect) return;
+        const dt = new Date(dateStr); const todayWeekday = dt.getDay(); 
+        for (let i = 0; i < weekSelect.options.length; i++) { const opt = weekSelect.options[i]; const val = parseInt(opt.value); let base = ['週日','週一','週二','週三','週四','週五','週六'][val]; if (val === 0) base = '週日'; else if(val===1) base='週一'; else if(val===2) base='週二'; else if(val===3) base='週三'; else if(val===4) base='週四'; else if(val===5) base='週五'; else if(val===6) base='週六'; opt.text = (val === todayWeekday) ? base + '-今' : base; } 
+    }
+    function updateWeek(dateId, weekId) { const d = document.getElementById(dateId).value; if(!d) return; const dt = new Date(d); const day = dt.getDay(); const sel = document.getElementById(weekId); if(sel) { sel.value = day; sel.className = 'week-select'; if(day === 6) sel.classList.add('wk-sat'); else if(day === 0) sel.classList.add('wk-sun'); else sel.classList.add('wk-normal'); } if (weekId === 'week-day') updateWeekDayOptions(d); }
+    function changeDateByWeek(dateId, weekId) { const dateInput = document.getElementById(dateId); const weekSelect = document.getElementById(weekId); const targetDay = parseInt(weekSelect.value); if(isNaN(targetDay)) return; let current = new Date(dateInput.value || new Date()); const currentDay = current.getDay(); let diff = targetDay - currentDay; current.setDate(current.getDate() + diff); dateInput.value = current.toLocaleDateString('en-CA'); checkTodayColor(dateInput); weekSelect.className = 'week-select'; if(targetDay === 6) weekSelect.classList.add('wk-sat'); else if(targetDay === 0) weekSelect.classList.add('wk-sun'); else weekSelect.classList.add('wk-normal'); if (weekId === 'week-day') updateWeekDayOptions(dateInput.value); }
+    function setUnit(unit) { currentUnit = unit; document.getElementById('unit-btn-pieces').classList.remove('active-pieces'); document.getElementById('unit-btn-small').classList.remove('active-small'); document.getElementById('unit-btn-big').classList.remove('active-big'); if (unit === '件數') { document.getElementById('unit-btn-pieces').classList.add('active-pieces'); setTimeout(() => document.getElementById('amt').focus(), 100); } else if (unit === '小板') { document.getElementById('unit-btn-small').classList.add('active-small'); } else if (unit === '大板') { document.getElementById('unit-btn-big').classList.add('active-big'); } toggleMult(); updateSmartDropdowns(); }
+    function toggleMult() { const u = currentUnit; const div = document.getElementById('mult-wrap'); const amtInput = document.getElementById('amt'); const multInput = document.getElementById('mult'); if(u === '' || u === '件數') { div.classList.remove('show'); multInput.value = 1; baseAmt = 0; amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; } else { div.classList.add('show'); if (u === '大板') baseAmt = 20; else if (u === '小板') baseAmt = 10; amtInput.readOnly = true; amtInput.classList.add('auto-calc'); calc(); setTimeout(() => { multInput.focus(); }, 150); } }
+    function calc() { const m = parseFloat(document.getElementById('mult').value) || 0; if(baseAmt > 0) { const total = Math.round(baseAmt * m * 10) / 10; document.getElementById('amt').value = total || 0; } }
+    function setType(t) { document.getElementById('type').value = t; document.getElementById('btn-in').className = (t=='收')?'type-btn active-in':'type-btn'; document.getElementById('btn-out').className = (t=='送')?'type-btn active-out':'type-btn'; updateSmartDropdowns(); }
+    function jumpToName(e) { if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); const firstInput = document.querySelector('.name-inp'); if(firstInput) firstInput.focus(); } }
+    function clearUnitSelection() { currentUnit = ''; document.getElementById('unit-btn-pieces').classList.remove('active-pieces'); document.getElementById('unit-btn-small').classList.remove('active-small'); document.getElementById('unit-btn-big').classList.remove('active-big'); const div = document.getElementById('mult-wrap'); div.classList.remove('show'); document.getElementById('mult').value = 1; baseAmt = 0; const amtInput = document.getElementById('amt'); amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; }
+
+    // ---------- 欄名互斥 ----------
+    function updateFieldSelects() {
+        const rows = document.querySelectorAll('.name-row');
+        const selectedFields = new Set();
+        rows.forEach(row => {
+            const select = row.querySelector('.field-select');
+            if (select && select.value.trim() !== '') {
+                selectedFields.add(select.value.trim());
+            }
+        });
+
+        rows.forEach(row => {
+            const select = row.querySelector('.field-select');
+            if (!select) return;
+            const currentValue = select.value;
+
+            select.innerHTML = '';
+            const blankOpt = document.createElement('option');
+            blankOpt.value = '';
+            blankOpt.textContent = '';
+            select.appendChild(blankOpt);
+
+            const items = ['單號', '發送站', '原件數', '改件原因'];
+            items.forEach(text => {
+                if (selectedFields.has(text) && currentValue !== text) {
+                    return;
+                }
+                const opt = document.createElement('option');
+                opt.value = text;
+                opt.textContent = text;
+                select.appendChild(opt);
+            });
+
+            if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
+            } else {
+                select.value = '';
+            }
+        });
+    }
+
+    // ---------- 名稱欄位動態函數 ----------
+    function createNameRow(selectVal = '', inputVal = '', index) {
+        const row = document.createElement('div');
+        row.className = 'name-row';
+
+        const select = document.createElement('select');
+        select.className = 'field-select';
+        const blankOpt = document.createElement('option');
+        blankOpt.value = '';
+        blankOpt.textContent = '';
+        select.appendChild(blankOpt);
+        
+        const items = ['單號', '發送站', '原件數', '改件原因'];
+        items.forEach(text => {
+            const opt = document.createElement('option');
+            opt.value = text;
+            opt.textContent = text;
+            select.appendChild(opt);
+        });
+        select.value = selectVal;
+
+        select.onchange = function() {
+            updateSmartDropdowns();
+            updateFieldSelects();
+            setTimeout(() => inp.focus(), 50);
+        };
+
+        select.onkeydown = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                jumpToNextNameField(index);
+            }
+        };
+
+        row.appendChild(select);
+
+        const inp = document.createElement('input');
+        inp.className = 'name-inp';
+        inp.id = `name-${index}`;
+        inp.value = inputVal;
+        inp.setAttribute('data-index', index);
+        inp.placeholder = `名稱 ${index+1}`;
+        inp.setAttribute('list', `list-name-${index}`);
+        inp.autocomplete = 'off';
+        inp.enterkeyhint = 'next';
+        inp.oninput = function(e) { 
+            handleNameInput(this); 
+            updateSmartDropdowns(); 
+        };
+        inp.onfocus = function() { updateSmartDropdowns(); };
+        inp.onkeydown = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const currentIndex = parseInt(this.dataset.index);
+                jumpToNextNameField(currentIndex);
+            }
+        };
+        row.appendChild(inp);
+
+        const dlist = document.createElement('datalist');
+        dlist.id = `list-name-${index}`;
+        row.appendChild(dlist);
+
+        return row;
+    }
+
+    function handleNameInput(input) {
+        const rows = document.querySelectorAll('.name-row');
+        const lastRow = rows[rows.length - 1];
+        if (!lastRow) return;
+        const lastInput = lastRow.querySelector('.name-inp');
+        if (input === lastInput && input.value.trim() !== "" && rows.length < MAX_NAME_ROWS) {
+            addNameRow();
+        }
+    }
+
+    function addNameRow() {
+        const container = document.getElementById('name-container');
+        const currentRows = container.children.length;
+        if (currentRows >= MAX_NAME_ROWS) return;
+        const newRow = createNameRow('', '', currentRows);
+        container.appendChild(newRow);
+        updateSmartDropdowns();
+        updateFieldSelects();
+        newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function renderNameRows(items) {
+        const container = document.getElementById('name-container');
+        container.innerHTML = '';
+        if (items.length === 0) {
+            const row = createNameRow('', '', 0);
+            container.appendChild(row);
+        } else {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const row = createNameRow(item.select || '', item.name || '', i);
+                container.appendChild(row);
+            }
+        }
+        updateSmartDropdowns();
+        updateFieldSelects();
+
+        const rows = container.querySelectorAll('.name-row');
+        if (rows.length > 0) {
+            const lastInput = rows[rows.length - 1].querySelector('.name-inp');
+            if (lastInput && lastInput.value.trim() !== '' && rows.length < MAX_NAME_ROWS) {
+                addNameRow();
+            }
+        }
+    }
+
+    function updateSmartDropdowns() {
+        if (!rawData) return;
+        const curDriver = document.getElementById('driver').value;
+        const curType = document.getElementById('type').value; 
+        
+        let onlineNames = rawData
+            .filter(d => d.driver === curDriver && (curType ? d.type === curType : true) && (currentUnit ? d.unit === currentUnit : true))
+            .map(d => d.name).join(',').split(',');
+        
+        let offlineNames = offlineData
+            .filter(d => (d.action === 'add' || d.action === 'edit') && d.driver === curDriver && (curType ? d.type === curType : true) && (currentUnit ? d.unit === currentUnit : true))
+            .map(d => d.name).join(',').split(',');
+        
+        let allNames = [...onlineNames, ...offlineNames].map(n => n.trim()).filter(n => n);
+        
+        const rows = document.querySelectorAll('.name-row');
+        rows.forEach((row, idx) => {
+            const select = row.querySelector('.field-select');
+            const inp = row.querySelector('.name-inp');
+            if (!inp) return;
+            const listId = inp.getAttribute('list');
+            const datalist = document.getElementById(listId);
+            if (!datalist) return;
+
+            const selectedField = select ? select.value : '';
+
+            let options = [];
+            if (selectedField === '') {
+                options = [...new Set(allNames)];
+            } else {
+                const prefix = selectedField + ':';
+                const matched = allNames.filter(name => name.startsWith(prefix));
+                const values = matched.map(name => name.substring(prefix.length));
+                options = [...new Set(values)];
+            }
+
+            datalist.innerHTML = '';
+            options.forEach(optValue => {
+                let op = document.createElement('option');
+                op.value = optValue;
+                datalist.appendChild(op);
+            });
+        });
+    }
+
+    // ---------- Enter 跳轉邏輯 ----------
+    function handleEnterOnInput(event, source) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            jumpToNextNameField(-1);
+        }
+    }
+
+    function jumpToNextNameField(startIndex) {
+        const rows = document.querySelectorAll('.name-row');
+        if (rows.length === 0) return;
+
+        let targetIndex = -1;
+        for (let i = startIndex + 1; i < rows.length; i++) {
+            const select = rows[i].querySelector('.field-select');
+            if (select && select.value.trim() !== '') {
+                targetIndex = i;
+                break;
+            }
+        }
+
+        if (targetIndex !== -1) {
+            const inp = rows[targetIndex].querySelector('.name-inp');
+            if (inp) inp.focus();
+            return;
+        }
+
+        const lastRow = rows[rows.length - 1];
+        const lastSelect = lastRow.querySelector('.field-select');
+        const lastInp = lastRow.querySelector('.name-inp');
+
+        if (lastSelect.value === '' && lastInp.value.trim() === '') {
+            lastInp.focus();
+            return;
+        }
+
+        if (rows.length < MAX_NAME_ROWS) {
+            addNameRow();
+            const newRows = document.querySelectorAll('.name-row');
+            if (newRows.length > rows.length) {
+                const newInp = newRows[newRows.length - 1].querySelector('.name-inp');
+                if (newInp) newInp.focus();
+            }
+        } else {
+            lastInp.focus();
+        }
+    }
+
+    // ---------- 表單重置與修改載入 ----------
+    function resetForm() {
+        document.getElementById('amt').value = '';
+        document.getElementById('cnt').value = '';
+        document.getElementById('cnt').readOnly = true;
+        document.getElementById('mult').value = '1';
+        clearUnitSelection();
+        document.getElementById('type').value = '';
+        document.getElementById('btn-in').className = 'type-btn';
+        document.getElementById('btn-out').className = 'type-btn';
+        renderNameRows([]);
+        
+        const btnSubmit = document.getElementById('btn-submit');
+        const btnCancel = document.getElementById('btn-cancel-mod');
+        btnSubmit.innerText = "💾 送出";
+        btnSubmit.classList.remove('mod-mode');
+        btnCancel.classList.remove('show');
+        btnSubmit.disabled = false;
+        if(!navigator.onLine) {
+            btnSubmit.innerText = "💾 送出 (離線)";
+            btnSubmit.classList.add('offline-mode');
+        } else {
+            btnSubmit.classList.remove('offline-mode');
+        }
+    }
+
+    function confirmModify() {
+        if (selectedIds.size === 0) return alert("請選擇要修改的資料");
+        const targetId = selectedIds.values().next().value; 
+        let targetData = rawData.find(d => d.id === targetId);
+        if (!targetData) { targetData = offlineData.find(d => d.id === targetId); }
+        if (!targetData) return alert("資料錯誤");
+
+        modifyTargetId = targetId;
+        showPage('input-page');
+        document.getElementById('mod-indicator').style.display = 'block';
+        
+        const btnSubmit = document.getElementById('btn-submit');
+        const btnCancel = document.getElementById('btn-cancel-mod');
+        btnSubmit.innerText = "確認修改";
+        btnSubmit.classList.add('mod-mode');
+        btnCancel.classList.add('show');  // 顯示取消按鈕
+        
+        document.getElementById('date').value = targetData.date.indexOf('T') > -1 ? targetData.date.split('T')[0] : targetData.date;
+        updateWeek('date', 'week-day');
+        setType(targetData.type);
+        setUnit(targetData.unit);
+        document.getElementById('mult').value = targetData.multiplier;
+        document.getElementById('amt').value = targetData.amount;
+        document.getElementById('cnt').value = targetData.count;
+
+        const nameStr = targetData.name || '';
+        const parts = nameStr.split(',').filter(p => p.trim() !== '');
+        const items = parts.map(part => {
+            const colonIndex = part.indexOf(':');
+            if (colonIndex !== -1) {
+                return { select: part.substring(0, colonIndex), name: part.substring(colonIndex + 1) };
+            } else {
+                return { select: '', name: part };
+            }
+        });
+        renderNameRows(items);
+    }
+
+    function cancelModify(doRefresh = true) {
+        modifyTargetId = null;
+        document.getElementById('mod-indicator').style.display = 'none';
+        const btnSubmit = document.getElementById('btn-submit');
+        const btnCancel = document.getElementById('btn-cancel-mod');
+        btnSubmit.innerText = "💾 送出";
+        btnSubmit.classList.remove('mod-mode');
+        btnCancel.classList.remove('show');  // 隱藏取消按鈕
+        resetForm();
+        cancelAction();
+        showPage('query-page');
+        if(doRefresh) fetchData();
+    }
+
+    // ---------- 送出資料 ----------
+    async function sendData() {
+        const rows = document.querySelectorAll('.name-row');
+        let names = [];
+        rows.forEach(row => {
+            const select = row.querySelector('.field-select');
+            const input = row.querySelector('.name-inp');
+            if (input.value.trim() !== '') {
+                const selectVal = select ? select.value : '';
+                const nameVal = input.value.trim();
+                if (selectVal) {
+                    names.push(selectVal + ':' + nameVal);
+                } else {
+                    names.push(nameVal);
+                }
+            }
+        });
+
+        if (names.length === 0) { if (!confirm("⚠️ 名稱未填寫，確定要略過嗎？")) return; }
+
+        const dataObj = {
+            date: document.getElementById('date').value,
+            driver: currentDriver,
+            type: document.getElementById('type').value,
+            count: document.getElementById('cnt').value,
+            unit: currentUnit,
+            multiplier: document.getElementById('mult').value,
+            amount: document.getElementById('amt').value,
+            name: names.join(',')
+        };
+
+        if(!dataObj.type || !dataObj.amount) return alert('收送與數量為必填！');
+
+        if (!navigator.onLine) {
+            if (modifyTargetId) {
+                const existingIndex = offlineData.findIndex(d => d.id === modifyTargetId);
+                if (existingIndex !== -1) {
+                    offlineData[existingIndex] = { ...offlineData[existingIndex], ...dataObj, _timestamp: Date.now() };
+                } else {
+                    offlineData.push({ ...dataObj, originalId: modifyTargetId, id: 'temp-' + Date.now(), isOffline: true, isUploaded: false, action: 'edit', _timestamp: Date.now() });
+                }
+                showToast('✏️ 修改已儲存至離線暫存');
+            } else {
+                offlineData.unshift({ ...dataObj, id: 'temp-' + Date.now(), isOffline: true, isUploaded: false, action: 'add', _timestamp: Date.now() });
+                showToast('💾 已儲存至離線暫存');
+            }
+            localStorage.setItem('offlineData', JSON.stringify(offlineData));
+            resetForm();
+            if (modifyTargetId) cancelModify(false);
+            showPage('query-page');
+            return;
+        }
+
+        const btnSubmit = document.getElementById('btn-submit');
+        btnSubmit.disabled = true; 
+        
+        if(modifyTargetId) { showStatus("修改中...", "load"); btnSubmit.innerText = "修改中..."; } 
+        else { btnSubmit.innerText = "傳送中..."; }
+
+        try {
+            const payload = { ...dataObj };
+            if (modifyTargetId) { payload.action = 'edit'; payload.id = modifyTargetId; } 
+            else { payload.action = 'add'; }
+            
+            // 改用正常 fetch 以便知道結果
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                if (modifyTargetId) { cancelModify(false); showStatus("修改成功，重新提取...", "load"); fetchData("提取完畢"); } 
+                else { showToast('✅ 新增成功'); resetForm(); fetchData("刷新成功"); }
+            } else {
+                showStatus("❌ 操作失敗: " + (result.error || '未知錯誤'), "err", 3000);
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = modifyTargetId ? "確認修改" : "💾 送出";
+            }
+        } catch(e) { 
+            showStatus("❌ 網路錯誤", "err", 3000);
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = modifyTargetId ? "確認修改" : "💾 送出";
+        }
+    }
+
+    // ---------- 離線同步與資料提取 ----------
+    async function syncOfflineData() {
+        if(offlineData.length === 0) return;
+        const pending = offlineData.filter(d => !d.isUploaded);
+        if(pending.length === 0) return;
+        showStatus(`正在上傳 ${pending.length} 筆暫存資料...`, 'load');
+        let successCount = 0;
+        for (let item of pending) {
+            try {
+                let payload;
+                if (item.action === 'add') {
+                    payload = { action: 'add', date: item.date, driver: item.driver, type: item.type, count: item.count, unit: item.unit, multiplier: item.multiplier, amount: item.amount, name: item.name };
+                } else if (item.action === 'edit') {
+                    payload = { action: 'edit', id: item.originalId, date: item.date, driver: item.driver, type: item.type, count: item.count, unit: item.unit, multiplier: item.multiplier, amount: item.amount, name: item.name };
+                } else if (item.action === 'delete') {
+                    payload = { action: 'delete', ids: [item.originalId] };
+                }
+                const response = await fetch(API_URL, { method:'POST', body:JSON.stringify(payload) });
+                const result = await response.json();
+                if (result.success) {
+                    item.isUploaded = true; 
+                    successCount++;
+                }
+            } catch(e) { console.error("Upload failed", e); }
+        }
+        offlineData = offlineData.filter(d => !d.isUploaded);
+        localStorage.setItem('offlineData', JSON.stringify(offlineData));
+        applyFilters(); 
+        if(successCount > 0) { showToast(`已自動上傳 ${successCount} 筆`); showStatus('同步完成', 'ok', 2000); }
+    }
+
+    async function fetchData(successMsg = "提取完畢") {
+        showStatus("提取中...", "load");
+        try {
+            const res = await fetch(API_URL);
+            const json = await res.json();
+            if (json.success && Array.isArray(json.data)) {
+                rawData = json.data.map((item, index) => ({ 
+                    id: item["ID"], 
+                    date: item["日期"], 
+                    driver: item["司機"], 
+                    type: item["收送狀態"], 
+                    count: item["筆數"], 
+                    unit: item["單位"], 
+                    multiplier: item["倍數"], 
+                    amount: item["數量"], 
+                    name: item["名稱"], 
+                    _sortIndex: index 
+                }));
+            } else if (Array.isArray(json)) {
+                rawData = json.map((item, index) => ({ ...item, _sortIndex: index }));
+            } else {
+                rawData = generateSampleData();
+                showStatus("使用範例資料", "ok", 1500);
+            }
+        } catch(e) { 
+            console.error(e); 
+            rawData = generateSampleData();
+            showStatus("離線模式 (範例資料)", "err", 2000);
+        }
+        localStorage.setItem('rawDataCache', JSON.stringify(rawData));
+        populateFilters();
+        applyFilters();
+        updateSmartDropdowns();
+        if (successMsg) showStatus(successMsg, "ok", 1500);
+    }
+
+    function generateSampleData() {
+        const today = todayYMD;
+        return [
+            { id: "1", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "5", name: "單號:ABC123", _sortIndex: 0 },
+            { id: "2", date: today, driver: currentDriver || "尤創裕", type: "送", count: "2", unit: "小板", multiplier: "2", amount: "20", name: "發送站:台北", _sortIndex: 1 },
+            { id: "3", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "大板", multiplier: "1", amount: "20", name: "原件數:5", _sortIndex: 2 },
+            { id: "4", date: today, driver: currentDriver || "尤創裕", type: "送", count: "1", unit: "件數", multiplier: "1", amount: "3", name: "改件原因:破損", _sortIndex: 3 }
+        ];
+    }
+
+    function populateFilters() {
+        if (!rawData) return;
+        const driverSel = document.getElementById('filter-driver');
+        const currentDr = driverSel.value;
+        driverSel.innerHTML = '<option value="All">全部司機</option>';
+        [...new Set(rawData.map(d => d.driver))].filter(d=>d).forEach(d => {
+            let op = document.createElement('option'); op.value = d; op.innerText = d; driverSel.appendChild(op);
+        });
+        if([...new Set(rawData.map(d => d.driver))].includes(currentDr)) driverSel.value = currentDr;
+    }
+
+    // ---------- 查詢頁核心函數 ----------
+    function applyFilters() {
+        updateFilterStyles(); 
+
+        const editedOriginalIds = new Set(offlineData.filter(d => d.action === 'edit').map(d => d.originalId));
+        let offlinePart = offlineData.filter(d => d.action !== 'delete').map(d => ({ ...d })); 
+        let onlinePart = rawData.filter(r => !editedOriginalIds.has(r.id)).slice();
+        
+        const dr = document.getElementById('filter-driver').value;
+        if(dr !== 'All') onlinePart = onlinePart.filter(r => r.driver === dr);
+        const ty = document.getElementById('filter-type').value;
+        if(ty !== 'All') onlinePart = onlinePart.filter(r => r.type === ty);
+        const un = document.getElementById('filter-unit').value;
+        if(un !== 'All') onlinePart = onlinePart.filter(r => r.unit === un);
+
+        const mode = document.getElementById('filter-date-mode').value;
+        let startStr, endStr;
+
+        if (mode === 'range') {
+            startStr = document.getElementById('filter-start').value;
+            endStr = document.getElementById('filter-end').value;
+        } else {
+            const range = calcDateRange(mode);
+            startStr = range.s;
+            endStr = range.e;
+        }
+
+        if(startStr && endStr) {
+            onlinePart = onlinePart.filter(r => {
+                if(!r.date) return false;
+                let d = r.date.indexOf('T') > -1 ? r.date.split('T')[0] : r.date;
+                return d >= startStr && d <= endStr;
+            });
+        }
+
+        if (isSortedAsc) {
+            onlinePart.sort((a, b) => {
+                if (a.date > b.date) return 1;
+                if (a.date < b.date) return -1;
+                return (a._sortIndex || 0) - (b._sortIndex || 0);
+            });
+        }
+
+        offlinePart.sort((a, b) => {
+            if (a.date > b.date) return 1;
+            if (a.date < b.date) return -1;
+            const ta = a._timestamp || 0;
+            const tb = b._timestamp || 0;
+            return ta - tb;
+        });
+
+        displayData = [...offlinePart, ...onlinePart];
+
+        let totalIn = 0, totalOut = 0;
+        displayData.forEach(r => {
+            let amt = parseFloat(r.amount) || 0;
+            if (r.type === '收') totalIn += amt;
+            if (r.type === '送') totalOut += amt;
+        });
+        document.getElementById('stat-in').innerText = totalIn;
+        document.getElementById('stat-out').innerText = totalOut;
+        document.getElementById('stat-cnt').innerText = displayData.length;
+        
+        document.getElementById('box-in').style.display = (ty === 'All' || ty === '收') ? 'block' : 'none';
+        document.getElementById('box-out').style.display = (ty === 'All' || ty === '送') ? 'block' : 'none';
+
+        renderTable();
+    }
+
+    function renderTable() {
+        const tb = document.getElementById('tbody');
+        tb.innerHTML = '';
+        
+        if (displayData.length === 0) {
+            tb.innerHTML = '<tr><td colspan="6" style="padding:10px; color:#999;">無資料</td></tr>';
+            return;
+        }
+
+        displayData.forEach(r => {
+            if(!r.date) return;
+            let dRaw = r.date.indexOf('T') > -1 ? r.date.split('T')[0] : r.date;
+            let parts = dRaw.split('-'); 
+            if(parts.length < 3) return;
+
+            let y = parts[0].substr(2); 
+            let m = parts[1];
+            let d = parts[2];
+            
+            let dateObj = new Date(dRaw);
+            let w = ['日','一','二','三','四','五','六'][dateObj.getDay()];
+            
+            let dateStr = `${y}/${m}/${d}${w}`;
+            
+            let wColor = '';
+            if(w === '六') wColor = 'color:#1e8e3e; font-weight:bold;';
+            else if(w === '日') wColor = 'color:#d93025; font-weight:bold;';
+
+            let rowClass = '';
+            if (currentMode === 'mod' && selectedIds.has(r.id)) rowClass = 'mode-mod-row';
+            if (currentMode === 'del' && selectedIds.has(r.id)) rowClass = 'mode-del-row';
+            
+            let iconHtml = '';
+            if (r.isOffline) {
+                rowClass += ' offline-row';
+                if(r.isUploaded) iconHtml = '<span class="offline-icon">✅</span>';
+                else iconHtml = '<span class="offline-icon">⏳</span>';
+            }
+
+            let dateBg = isSortedAsc ? 'background-color: var(--sort-bg);' : '';
+            
+            let unitClass = '';
+            if(r.unit === '小板') unitClass = 'text-unit-small';
+            if(r.unit === '大板') unitClass = 'text-unit-big';
+
+            tb.innerHTML += `<tr class="${rowClass}" onclick="handleRowClick('${r.id}', this)" data-json='${JSON.stringify(r)}'>
+                <td class="td-date" style="${dateBg}; ${wColor}">${iconHtml}${dateStr}</td>
+                <td style="color:${r.type=='收'?'green':'red'};">${r.type}</td>
+                <td class="${unitClass}">${r.unit?r.unit[0]:''}</td>
+                <td>${r.multiplier||1}</td>
+                <td>${r.amount}</td>
+                <td class="th-name"><div class="name-scroll">${r.name||''}</div></td>
+            </tr>`;
+        });
+        
+        updateSelCount();
+    }
+
+    function toggleDateSort() {
+        isSortedAsc = !isSortedAsc;
+        const icon = document.getElementById('sort-icon');
+        icon.innerText = isSortedAsc ? '▲' : '●'; 
+        showToast(isSortedAsc ? "📅 日期：由小到大" : "📅 原始順序");
+        applyFilters(); 
+    }
+
+    function toggleMode(mode) {
+        if (currentMode === mode) { cancelAction(); return; }
+        currentMode = mode;
+        selectedIds.clear();
+        
+        document.getElementById('act-mod').innerText = (mode === 'mod') ? '取消修改' : '修改';
+        document.getElementById('act-del').innerText = (mode === 'del') ? '取消刪除' : '刪除';
+        
+        document.getElementById('act-mod').className = (mode === 'mod') ? 'act-btn active-mod' : 'act-btn';
+        document.getElementById('act-del').className = (mode === 'del') ? 'act-btn active-del' : 'act-btn';
+        
+        document.getElementById('btn-confirm-mod').style.display = (mode === 'mod') ? 'block' : 'none';
+        document.getElementById('btn-confirm-del').style.display = (mode === 'del') ? 'block' : 'none';
+        document.getElementById('sel-count').style.display = 'block';
+
+        renderTable();
+    }
+
+    function cancelAction() {
+        currentMode = 'none';
+        selectedIds.clear();
+        document.getElementById('act-mod').innerText = '修改';
+        document.getElementById('act-del').innerText = '刪除';
+        document.getElementById('act-mod').className = 'act-btn';
+        document.getElementById('act-del').className = 'act-btn';
+        document.getElementById('btn-confirm-mod').style.display = 'none';
+        document.getElementById('btn-confirm-del').style.display = 'none';
+        document.getElementById('sel-count').style.display = 'none';
+        renderTable();
+    }
+
+    function handleRowClick(id, tr) {
+        if (window.getSelection().toString().length > 0) return;
+        if (currentMode === 'none') return;
+        
+        if (selectedIds.has(id)) { selectedIds.delete(id); } 
+        else { selectedIds.add(id); }
+        renderTable();
+        updateSelCount();
+    }
+
+    function updateSelCount() {
+        document.getElementById('sel-count').innerText = `已選 ${selectedIds.size}`;
+    }
+
+    async function confirmDelete() {
+        if (selectedIds.size === 0) return alert("請至少選擇一筆");
+        if (!confirm(`⚠️ 二度確認 ⚠️\n確定刪除 ${selectedIds.size} 筆？`)) return;
+
+        const ids = Array.from(selectedIds);
+        const onlineIds = ids.filter(id => rawData.some(d => d.id === id));
+        const offlineIds = ids.filter(id => offlineData.some(d => d.id === id));
+
+        if (offlineIds.length > 0) {
+            offlineData = offlineData.filter(d => !offlineIds.includes(d.id));
+            localStorage.setItem('offlineData', JSON.stringify(offlineData));
+        }
+
+        if (onlineIds.length > 0) {
+            if (!navigator.onLine) {
+                onlineIds.forEach(id => {
+                    const targetData = rawData.find(d => d.id === id);
+                    if (targetData) {
+                        offlineData.push({ ...targetData, originalId: id, isOffline: true, isUploaded: false, action: 'delete', _timestamp: Date.now() });
+                    }
+                });
+                localStorage.setItem('offlineData', JSON.stringify(offlineData));
+                rawData = rawData.filter(d => !onlineIds.includes(d.id));
+                showToast(`已將 ${onlineIds.length} 筆刪除操作存入離線暫存`);
+            } else {
+                showStatus("刪除中...", "load");
+                try {
+                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', ids: onlineIds }) });
+                    const result = await response.json();
+                    if (result.success) {
+                        showStatus("刪除成功，重新提取...", "load");
+                        rawData = rawData.filter(d => !onlineIds.includes(d.id));
+                    } else {
+                        showStatus("刪除失敗", "err", 2000);
+                    }
+                } catch(e) { 
+                    showStatus("刪除失敗", "err", 2000);
+                }
+            }
+        }
+
+        cancelAction();
+        applyFilters();
+    }
+
+    function manualRefetch() {
+        fetchData();
+    }
+
+    function toggleFilterDate() {
+        const sel = document.getElementById('filter-date-mode');
+        const mode = sel.value;
+        const isRange = (mode === 'range');
+        document.getElementById('filter-range-container').style.display = isRange ? 'flex' : 'none';
+        
+        if(isRange) sel.classList.add('shrink');
+        else sel.classList.remove('shrink');
+
+        if(isRange) {
+            updateWeek('filter-start', 'wk-start');
+            updateWeek('filter-end', 'wk-end');
+        }
+
+        applyFilters();
+    }
+
+    function calcDateRange(mode) {
+        const today = new Date();
+        let start = new Date(today);
+        let end = new Date(today);
+
+        if (mode === 'today') {
+        } else if (mode === 'yesterday') {
+            start.setDate(today.getDate() - 1);
+            end.setDate(today.getDate() - 1);
+        } else if (mode === 'thisMonth') {
+            start.setDate(1);
+        } else if (mode === 'lastMonth') {
+            start.setMonth(today.getMonth() - 1, 1);
+            end.setDate(0); 
+        }
+        return { s: start.toLocaleDateString('en-CA'), e: end.toLocaleDateString('en-CA') };
+    }
+
+    function updateFilterStyles() {
+        const dr = document.getElementById('filter-driver');
+        const ty = document.getElementById('filter-type');
+        const un = document.getElementById('filter-unit');
+        const dt = document.getElementById('filter-date-mode');
+
+        [dr, ty, un, dt].forEach(el => {
+            el.classList.remove('sel-default-blue', 'sel-in-green', 'sel-out-red', 'sel-unit-small', 'sel-unit-big', 'bg-month');
+        });
+
+        if (dr.value === 'All') dr.classList.add('sel-default-blue');
+        if (ty.value === 'All') ty.classList.add('sel-default-blue');
+        else if (ty.value === '收') ty.classList.add('sel-in-green');
+        else if (ty.value === '送') ty.classList.add('sel-out-red');
+
+        if (un.value === 'All') un.classList.add('sel-default-blue');
+        else if (un.value === '小板') un.classList.add('sel-unit-small');
+        else if (un.value === '大板') un.classList.add('sel-unit-big');
+
+        if (dt.value === 'today') dt.classList.add('sel-default-blue');
+        else if (dt.value === 'thisMonth') dt.classList.add('bg-month');
+    }
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(id === 'input-page') {
+            document.getElementById('btn-input').classList.add('active');
+            const dateInput = document.getElementById('date');
+            if (dateInput.value) updateWeekDayOptions(dateInput.value);
+        }
+        if(id === 'query-page') {
+            document.getElementById('btn-query').classList.add('active');
+            if(rawData.length === 0) fetchData();
+            else applyFilters();
+        }
+    }
+
+    // 啟動檢查登入
+    window.onload = function() {
+        checkLogin();
+    };
+</script>
+</body>
+                                                                                              </html>
