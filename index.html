@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新航通運 Hiyes - 專業物流運輸服務</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 根據 Logo 提取的品牌色 */
+        :root {
+            --hiyes-red: #E60012;
+            --hiyes-blue: #005CAF;
+            --hiyes-green: #22AC38;
+            --hiyes-gold: #D4AF37;
+        }
+        .bg-hiyes-red { background-color: var(--hiyes-red); }
+        .text-hiyes-blue { color: var(--hiyes-blue); }
+        .border-hiyes-gold { border-color: var(--hiyes-gold); }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="1000018519.jpg" alt="新航通運 Logo" class="h-12">
+            </div>
+            <div class="hidden md:flex space-x-8 font-medium">
+                <a href="#" class="hover:text-red-600 transition">關於我們</a>
+                <a href="#" class="hover:text-red-600 transition">服務項目</a>
+                <a href="#" class="hover:text-red-600 transition">車隊介紹</a>
+                <a href="#" class="hover:text-red-600 transition">聯絡我們</a>
+            </div>
+            <button class="bg-hiyes-red text-white px-5 py-2 rounded-full hover:opacity-90 transition">
+                在線諮詢
+            </button>
+        </div>
+    </nav>
+
+    <header class="relative bg-slate-800 h-[500px] flex items-center text-white">
+        <div class="absolute inset-0 opacity-40">
+            <img src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=1600&q=80" alt="背景" class="w-full h-full object-cover">
+        </div>
+        <div class="container mx-auto px-6 relative z-10">
+            <h1 class="text-5xl font-bold mb-4">新航通運，引領商機</h1>
+            <p class="text-xl mb-8 max-w-lg">提供全方位物流解決方案，以速度與誠信，將您的託付精準送達每一個角落。</p>
+            <div class="flex space-x-4">
+                <a href="#" class="bg-hiyes-red px-8 py-3 rounded text-lg font-bold">立即諮詢</a>
+                <a href="#" class="bg-white text-gray-900 px-8 py-3 rounded text-lg font-bold">了解更多</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="py-20">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-3xl font-bold mb-12">為什麼選擇新航通運？</h2>
+            <div class="grid md:grid-cols-3 gap-12">
+                <div class="p-8 bg-white rounded-xl shadow-sm border-b-4 border-hiyes-gold">
+                    <div class="text-hiyes-blue text-4xl mb-4">⚡</div>
+                    <h3 class="text-xl font-bold mb-2">極速配送</h3>
+                    <p class="text-gray-600">優化運輸路徑，確保貨物在最短時間內安全抵達。</p>
+                </div>
+                <div class="p-8 bg-white rounded-xl shadow-sm border-b-4 border-hiyes-gold">
+                    <div class="text-hiyes-blue text-4xl mb-4">🛡️</div>
+                    <h3 class="text-xl font-bold mb-2">安全保障</h3>
+                    <p class="text-gray-600">嚴格的裝卸流程與即時追蹤系統，讓您全程放心。</p>
+                </div>
+                <div class="p-8 bg-white rounded-xl shadow-sm border-b-4 border-hiyes-gold">
+                    <div class="text-hiyes-blue text-4xl mb-4">💼</div>
+                    <h3 class="text-xl font-bold mb-2">專業團隊</h3>
+                    <p class="text-gray-600">具備多年產業經驗的駕駛與客服團隊，提供優質服務。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-gray-400 py-12">
+        <div class="container mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h3 class="text-white text-2xl font-bold mb-4">新航通運 Hiyes</h3>
+                <p>致力於成為您最值得信賴的物流夥伴。</p>
+            </div>
+            <div class="text-right">
+                <p>地址：您的公司地址位於台灣某處</p>
+                <p>電話：02-XXXX-XXXX</p>
+                <p class="mt-4 text-sm">© 2026 新航通運. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
