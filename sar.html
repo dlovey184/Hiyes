@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>阿裕物流·記住密碼版 (PRO MAX v62)</title>
+    <title>阿裕物流·按鈕修正版 (PRO MAX v63)</title>
     <style>
         /* --- 變數與基礎 --- */
         :root {
@@ -361,22 +361,18 @@
                 <div class="unit-btn" id="unit-btn-big" onclick="setUnit('大板')">大板</div>
             </div>
 
-            <!-- 倍數、數量、筆數 -->
+            <!-- 倍數、數量、筆數 (移除 Enter 跳轉事件) -->
             <div class="row-group" style="margin-bottom: 5px;">
                 <div id="mult-wrap" class="form-group col-mult">
                     <label>倍數</label>
                     <input type="number" id="mult" value="1" step="0.1" inputmode="decimal" 
-                           enterkeyhint="next"
                            onfocus="this.select()" 
                            onblur="if(this.value=='')this.value='1';calc()" 
-                           oninput="calc()"
-                           onkeydown="handleEnterOnInput(event, 'mult')">
+                           oninput="calc()">
                 </div>
                 <div class="form-group col-amt">
                     <label>數量</label>
                     <input type="tel" id="amt" placeholder="量" 
-                           enterkeyhint="next"
-                           onkeydown="handleEnterOnInput(event, 'amt')" 
                            oninput="this.value=this.value.replace(/[^\d]/g,'');">
                 </div>
                 <div class="form-group col-cnt">
@@ -521,7 +517,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // 記住帳密 (如果 remember 為 true)
+                // 記住帳密
                 if (remember) {
                     localStorage.setItem('savedUsername', username);
                     localStorage.setItem('savedPassword', password);
@@ -529,7 +525,6 @@
                 handleLoginSuccess(username);
             } else {
                 errorDiv.innerText = data.error || '登入失敗';
-                // 清除可能錯誤的儲存
                 localStorage.removeItem('savedUsername');
                 localStorage.removeItem('savedPassword');
             }
@@ -552,11 +547,9 @@
         const savedUsername = localStorage.getItem('savedUsername');
         const savedPassword = localStorage.getItem('savedPassword');
         if (savedUsername && savedPassword) {
-            // 自動填入並嘗試登入
             document.getElementById('login-username').value = savedUsername;
             document.getElementById('login-password').value = savedPassword;
-            // 呼叫 login 但不重複記住 (避免覆蓋)
-            login(false); // 傳 false 表示不重複儲存
+            login(false); // 不重複儲存
         } else {
             document.getElementById('login-page').style.display = 'flex';
             document.getElementById('app-container').style.display = 'none';
@@ -625,7 +618,6 @@
     function toggleMult() { const u = currentUnit; const div = document.getElementById('mult-wrap'); const amtInput = document.getElementById('amt'); const multInput = document.getElementById('mult'); if(u === '' || u === '件數') { div.classList.remove('show'); multInput.value = 1; baseAmt = 0; amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; } else { div.classList.add('show'); if (u === '大板') baseAmt = 20; else if (u === '小板') baseAmt = 10; amtInput.readOnly = true; amtInput.classList.add('auto-calc'); calc(); setTimeout(() => { multInput.focus(); }, 150); } }
     function calc() { const m = parseFloat(document.getElementById('mult').value) || 0; if(baseAmt > 0) { const total = Math.round(baseAmt * m * 10) / 10; document.getElementById('amt').value = total || 0; } }
     function setType(t) { document.getElementById('type').value = t; document.getElementById('btn-in').className = (t=='收')?'type-btn active-in':'type-btn'; document.getElementById('btn-out').className = (t=='送')?'type-btn active-out':'type-btn'; updateSmartDropdowns(); }
-    function jumpToName(e) { if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); const firstInput = document.querySelector('.name-inp'); if(firstInput) firstInput.focus(); } }
     function clearUnitSelection() { currentUnit = ''; document.getElementById('unit-btn-pieces').classList.remove('active-pieces'); document.getElementById('unit-btn-small').classList.remove('active-small'); document.getElementById('unit-btn-big').classList.remove('active-big'); const div = document.getElementById('mult-wrap'); div.classList.remove('show'); document.getElementById('mult').value = 1; baseAmt = 0; const amtInput = document.getElementById('amt'); amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; }
 
     // ---------- 欄名互斥 ----------
@@ -669,7 +661,7 @@
         });
     }
 
-    // ---------- 名稱欄位動態函數 ----------
+    // ---------- 名稱欄位動態函數 (移除所有 Enter 相關事件) ----------
     function createNameRow(selectVal = '', inputVal = '', index) {
         const row = document.createElement('div');
         row.className = 'name-row';
@@ -693,15 +685,11 @@
         select.onchange = function() {
             updateSmartDropdowns();
             updateFieldSelects();
+            // 選擇欄名後自動聚焦到名稱輸入框（保留此便利功能）
             setTimeout(() => inp.focus(), 50);
         };
 
-        select.onkeydown = function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                jumpToNextNameField(index);
-            }
-        };
+        // 移除 select 的 onkeydown Enter 事件
 
         row.appendChild(select);
 
@@ -713,19 +701,12 @@
         inp.placeholder = `名稱 ${index+1}`;
         inp.setAttribute('list', `list-name-${index}`);
         inp.autocomplete = 'off';
-        inp.enterkeyhint = 'next';
         inp.oninput = function(e) { 
             handleNameInput(this); 
             updateSmartDropdowns(); 
         };
         inp.onfocus = function() { updateSmartDropdowns(); };
-        inp.onkeydown = function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const currentIndex = parseInt(this.dataset.index);
-                jumpToNextNameField(currentIndex);
-            }
-        };
+        // 移除 inp 的 onkeydown Enter 事件
         row.appendChild(inp);
 
         const dlist = document.createElement('datalist');
@@ -781,6 +762,7 @@
         }
     }
 
+    // ---------- 智慧下拉：修改為當欄名為空時不顯示任何選項 ----------
     function updateSmartDropdowns() {
         if (!rawData) return;
         const curDriver = document.getElementById('driver').value;
@@ -809,7 +791,8 @@
 
             let options = [];
             if (selectedField === '') {
-                options = [...new Set(allNames)];
+                // 欄名未選：不顯示任何建議（清空下拉）
+                options = [];
             } else {
                 const prefix = selectedField + ':';
                 const matched = allNames.filter(name => name.startsWith(prefix));
@@ -826,53 +809,8 @@
         });
     }
 
-    // ---------- Enter 跳轉邏輯 ----------
-    function handleEnterOnInput(event, source) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            jumpToNextNameField(-1);
-        }
-    }
-
-    function jumpToNextNameField(startIndex) {
-        const rows = document.querySelectorAll('.name-row');
-        if (rows.length === 0) return;
-
-        let targetIndex = -1;
-        for (let i = startIndex + 1; i < rows.length; i++) {
-            const select = rows[i].querySelector('.field-select');
-            if (select && select.value.trim() !== '') {
-                targetIndex = i;
-                break;
-            }
-        }
-
-        if (targetIndex !== -1) {
-            const inp = rows[targetIndex].querySelector('.name-inp');
-            if (inp) inp.focus();
-            return;
-        }
-
-        const lastRow = rows[rows.length - 1];
-        const lastSelect = lastRow.querySelector('.field-select');
-        const lastInp = lastRow.querySelector('.name-inp');
-
-        if (lastSelect.value === '' && lastInp.value.trim() === '') {
-            lastInp.focus();
-            return;
-        }
-
-        if (rows.length < MAX_NAME_ROWS) {
-            addNameRow();
-            const newRows = document.querySelectorAll('.name-row');
-            if (newRows.length > rows.length) {
-                const newInp = newRows[newRows.length - 1].querySelector('.name-inp');
-                if (newInp) newInp.focus();
-            }
-        } else {
-            lastInp.focus();
-        }
-    }
+    // ---------- 移除所有 Enter 跳轉相關函數 ----------
+    // handleEnterOnInput 和 jumpToNextNameField 已被移除
 
     // ---------- 表單重置與修改載入 ----------
     function resetForm() {
@@ -1016,7 +954,6 @@
             if (modifyTargetId) { payload.action = 'edit'; payload.id = modifyTargetId; } 
             else { payload.action = 'add'; }
             
-            // 改用正常 fetch 以便知道結果
             const response = await fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify(payload)
@@ -1435,4 +1372,4 @@
     };
 </script>
 </body>
-                                                                                              </html>
+</html>
