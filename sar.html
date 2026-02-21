@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>阿裕物流·按鈕修正版 (PRO MAX v63)</title>
+    <title>阿裕物流·按鈕修正版 (PRO MAX v74)</title>
     <style>
         /* --- 變數與基礎 --- */
         :root {
@@ -140,7 +140,7 @@
         /* --- 表單元件 --- */
         .form-group { margin-bottom: 5px; flex-shrink: 0; }
         label { display: block; margin-bottom: 2px; font-weight: bold; color: #444; font-size: 13px; user-select: none;}
-        input, select, .type-btn, .btn-submit, .unit-btn, .btn-cancel { font-size: 15px; }
+        input, select, .type-btn, .btn-submit, .unit-btn, .btn-cancel, .logout-btn { font-size: 15px; }
         input, select { 
             width: 100%; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
             height: 38px;
@@ -186,14 +186,18 @@
         .col-mult { flex: 0; width: 0; opacity: 0; overflow: hidden; transition: flex 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease; }
         .col-mult.show { flex: 0.8; margin-left: 2px; opacity: 1; } 
 
-        /* --- 名稱區塊：可內部滾動 --- */
+        /* --- 名稱區塊：固定高度，內部滾動，確保按鈕可見 --- */
+        .name-group {
+            flex: 0 0 auto;          /* 不伸縮，高度由內容決定但受限於 max-height */
+            max-height: 200px;        /* 最多佔 200px 高度 */
+            overflow-y: auto;         /* 內容超過時內部滾動 */
+            margin-bottom: 5px;
+            padding-right: 2px;       /* 避免滾動條遮擋 */
+        }
         #name-container {
             display: flex;
             flex-direction: column;
             gap: 5px;
-            max-height: 220px;
-            overflow-y: auto;
-            padding-right: 2px;
         }
         .name-row {
             display: flex;
@@ -217,12 +221,13 @@
             height: 38px;
         }
 
-        /* 按鈕列：送出與取消並排 */
+        /* 按鈕列：送出與取消並排，永遠顯示 */
         .action-buttons {
             display: flex;
             gap: 5px;
             margin-top: 5px;
             flex-shrink: 0;
+            min-height: 40px;
         }
         .btn-submit, .btn-cancel {
             flex: 1;
@@ -247,13 +252,45 @@
         .btn-cancel {
             background: #ccc;
             color: #333;
-            display: none; /* 預設隱藏 */
+            display: none;
         }
         .btn-cancel.show {
-            display: block; /* 修改模式顯示 */
+            display: block !important;
+        }
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            flex: 0 0 auto;
+            width: 60px;
+            padding: 8px 0;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
         }
 
-        /* 查詢頁樣式 */
+        /* 司機列：flex 排版 */
+        .driver-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .driver-row label {
+            width: 40px;
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+        .driver-row .driver-input-wrapper {
+            flex: 1;
+            display: flex;
+            gap: 5px;
+        }
+        .driver-row input {
+            flex: 1;
+        }
+
+        /* 查詢頁樣式 (與前版相同) */
         .query-layout { display: flex; flex-direction: column; height: 100%; }        
         .filter-area { background: #f8f9fa; padding: 4px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 2px; flex-shrink: 0; }
         .filter-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; justify-content: space-between;} 
@@ -331,7 +368,14 @@
         <div id="input-page" class="page active">
             <h2>運務填報</h2>
             
-            <div class="form-group"><label>司機</label><input type="text" id="driver" readonly></div>
+            <!-- 司機列 + 登出按鈕 -->
+            <div class="form-group driver-row">
+                <label>司機</label>
+                <div class="driver-input-wrapper">
+                    <input type="text" id="driver" readonly>
+                    <button class="logout-btn" onclick="logout()">登出</button>
+                </div>
+            </div>
 
             <div class="form-group">
                 <label>日期</label>
@@ -361,7 +405,7 @@
                 <div class="unit-btn" id="unit-btn-big" onclick="setUnit('大板')">大板</div>
             </div>
 
-            <!-- 倍數、數量、筆數 (移除 Enter 跳轉事件) -->
+            <!-- 倍數、數量、筆數 -->
             <div class="row-group" style="margin-bottom: 5px;">
                 <div id="mult-wrap" class="form-group col-mult">
                     <label>倍數</label>
@@ -381,8 +425,8 @@
                 </div>
             </div>
 
-            <!-- 名稱區塊 -->
-            <div class="form-group" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+            <!-- 名稱區塊 (固定高度 200px，內部滾動) -->
+            <div class="name-group">
                 <label>名稱欄名 (左側下拉選擇欄名，智慧選單只顯示對應的名稱值)</label>
                 <div id="name-container"></div>
             </div>
@@ -394,7 +438,7 @@
             </div>
         </div>
 
-        <!-- 查詢頁 (移除欄名與關鍵字篩選) -->
+        <!-- 查詢頁 -->
         <div id="query-page" class="page">
             <div class="query-layout">
                 <div class="header-row">
@@ -556,6 +600,13 @@
         }
     }
 
+    // 登出函數
+    function logout() {
+        localStorage.removeItem('savedUsername');
+        localStorage.removeItem('savedPassword');
+        location.reload(); // 重新載入回到登入頁
+    }
+
     // ---------- 初始化主應用 ----------
     function initApp() {
         updateOnlineStatus();
@@ -661,7 +712,7 @@
         });
     }
 
-    // ---------- 名稱欄位動態函數 (移除所有 Enter 相關事件) ----------
+    // ---------- 名稱欄位動態函數 ----------
     function createNameRow(selectVal = '', inputVal = '', index) {
         const row = document.createElement('div');
         row.className = 'name-row';
@@ -685,11 +736,8 @@
         select.onchange = function() {
             updateSmartDropdowns();
             updateFieldSelects();
-            // 選擇欄名後自動聚焦到名稱輸入框（保留此便利功能）
             setTimeout(() => inp.focus(), 50);
         };
-
-        // 移除 select 的 onkeydown Enter 事件
 
         row.appendChild(select);
 
@@ -706,7 +754,6 @@
             updateSmartDropdowns(); 
         };
         inp.onfocus = function() { updateSmartDropdowns(); };
-        // 移除 inp 的 onkeydown Enter 事件
         row.appendChild(inp);
 
         const dlist = document.createElement('datalist');
@@ -762,20 +809,33 @@
         }
     }
 
-    // ---------- 智慧下拉：修改為當欄名為空時不顯示任何選項 ----------
+    // ---------- 智慧下拉：依據司機、收送、單位過濾，且小板大板視為同一組 ----------
     function updateSmartDropdowns() {
         if (!rawData) return;
         const curDriver = document.getElementById('driver').value;
         const curType = document.getElementById('type').value; 
         
+        // 單位過濾條件：若 currentUnit 為小板或大板，則允許兩者；否則只允許完全匹配
+        const unitFilter = (item) => {
+            if (!currentUnit) return true;
+            if (currentUnit === '小板' || currentUnit === '大板') {
+                return item.unit === '小板' || item.unit === '大板';
+            } else {
+                return item.unit === currentUnit;
+            }
+        };
+
+        // 從線上資料收集符合條件的名稱
         let onlineNames = rawData
-            .filter(d => d.driver === curDriver && (curType ? d.type === curType : true) && (currentUnit ? d.unit === currentUnit : true))
+            .filter(d => d.driver === curDriver && (curType ? d.type === curType : true) && unitFilter(d))
             .map(d => d.name).join(',').split(',');
         
+        // 從離線資料收集
         let offlineNames = offlineData
-            .filter(d => (d.action === 'add' || d.action === 'edit') && d.driver === curDriver && (curType ? d.type === curType : true) && (currentUnit ? d.unit === currentUnit : true))
+            .filter(d => (d.action === 'add' || d.action === 'edit') && d.driver === curDriver && (curType ? d.type === curType : true) && unitFilter(d))
             .map(d => d.name).join(',').split(',');
         
+        // 合併所有名稱，並過濾掉空字串
         let allNames = [...onlineNames, ...offlineNames].map(n => n.trim()).filter(n => n);
         
         const rows = document.querySelectorAll('.name-row');
@@ -791,8 +851,9 @@
 
             let options = [];
             if (selectedField === '') {
-                // 欄名未選：不顯示任何建議（清空下拉）
-                options = [];
+                // 欄名未選：過濾掉包含 ":" 的字串
+                const values = allNames.filter(name => name.indexOf(':') === -1);
+                options = [...new Set(values)];
             } else {
                 const prefix = selectedField + ':';
                 const matched = allNames.filter(name => name.startsWith(prefix));
@@ -808,9 +869,6 @@
             });
         });
     }
-
-    // ---------- 移除所有 Enter 跳轉相關函數 ----------
-    // handleEnterOnInput 和 jumpToNextNameField 已被移除
 
     // ---------- 表單重置與修改載入 ----------
     function resetForm() {
@@ -853,7 +911,7 @@
         const btnCancel = document.getElementById('btn-cancel-mod');
         btnSubmit.innerText = "確認修改";
         btnSubmit.classList.add('mod-mode');
-        btnCancel.classList.add('show');  // 顯示取消按鈕
+        btnCancel.classList.add('show');
         
         document.getElementById('date').value = targetData.date.indexOf('T') > -1 ? targetData.date.split('T')[0] : targetData.date;
         updateWeek('date', 'week-day');
@@ -883,7 +941,7 @@
         const btnCancel = document.getElementById('btn-cancel-mod');
         btnSubmit.innerText = "💾 送出";
         btnSubmit.classList.remove('mod-mode');
-        btnCancel.classList.remove('show');  // 隱藏取消按鈕
+        btnCancel.classList.remove('show');
         resetForm();
         cancelAction();
         showPage('query-page');
@@ -1048,7 +1106,8 @@
             { id: "1", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "5", name: "單號:ABC123", _sortIndex: 0 },
             { id: "2", date: today, driver: currentDriver || "尤創裕", type: "送", count: "2", unit: "小板", multiplier: "2", amount: "20", name: "發送站:台北", _sortIndex: 1 },
             { id: "3", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "大板", multiplier: "1", amount: "20", name: "原件數:5", _sortIndex: 2 },
-            { id: "4", date: today, driver: currentDriver || "尤創裕", type: "送", count: "1", unit: "件數", multiplier: "1", amount: "3", name: "改件原因:破損", _sortIndex: 3 }
+            { id: "4", date: today, driver: currentDriver || "尤創裕", type: "送", count: "1", unit: "件數", multiplier: "1", amount: "3", name: "改件原因:破損", _sortIndex: 3 },
+            { id: "5", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "2", name: "一般名稱", _sortIndex: 4 }
         ];
     }
 
@@ -1372,4 +1431,4 @@
     };
 </script>
 </body>
-</html>
+    </html>
