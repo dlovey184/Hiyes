@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>阿裕物流·按鈕修正版 (PRO MAX v74)</title>
+    <title>阿裕物流·欄名智慧切換版 (PRO MAX v76)</title>
     <style>
         /* --- 變數與基礎 --- */
         :root {
@@ -186,13 +186,65 @@
         .col-mult { flex: 0; width: 0; opacity: 0; overflow: hidden; transition: flex 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease; }
         .col-mult.show { flex: 0.8; margin-left: 2px; opacity: 1; } 
 
-        /* --- 名稱區塊：固定高度，內部滾動，確保按鈕可見 --- */
+        /* 切換開關樣式 */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .2s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .toggle-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        /* --- 名稱區塊：固定高度，內部滾動 --- */
         .name-group {
-            flex: 0 0 auto;          /* 不伸縮，高度由內容決定但受限於 max-height */
-            max-height: 200px;        /* 最多佔 200px 高度 */
-            overflow-y: auto;         /* 內容超過時內部滾動 */
+            flex: 0 0 auto;
+            max-height: 200px;
+            overflow-y: auto;
             margin-bottom: 5px;
-            padding-right: 2px;       /* 避免滾動條遮擋 */
+            padding-right: 2px;
         }
         #name-container {
             display: flex;
@@ -221,7 +273,7 @@
             height: 38px;
         }
 
-        /* 按鈕列：送出與取消並排，永遠顯示 */
+        /* 按鈕列：送出與取消並排 */
         .action-buttons {
             display: flex;
             gap: 5px;
@@ -290,7 +342,7 @@
             flex: 1;
         }
 
-        /* 查詢頁樣式 (與前版相同) */
+        /* 查詢頁樣式 (標題改為「單位」) */
         .query-layout { display: flex; flex-direction: column; height: 100%; }        
         .filter-area { background: #f8f9fa; padding: 4px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 2px; flex-shrink: 0; }
         .filter-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; justify-content: space-between;} 
@@ -398,7 +450,7 @@
                 <input type="hidden" id="type">
             </div>
 
-            <!-- 單位按鈕 -->
+            <!-- 單位按鈕 (數量單位) -->
             <div class="row-group unit-btn-row" style="margin-bottom: 5px;">
                 <div class="unit-btn" id="unit-btn-pieces" onclick="setUnit('件數')">件數</div>
                 <div class="unit-btn" id="unit-btn-small" onclick="setUnit('小板')">小板</div>
@@ -425,9 +477,18 @@
                 </div>
             </div>
 
-            <!-- 名稱區塊 (固定高度 200px，內部滾動) -->
+            <!-- 全域切換開關：啟用欄名 -->
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-field" checked onchange="toggleFieldSelects()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">啟用欄名</span>
+            </div>
+
+            <!-- 名稱區塊 (固定高度) -->
             <div class="name-group">
-                <label>名稱欄名 (左側下拉選擇欄名，智慧選單只顯示對應的名稱值)</label>
+                <label>名稱 (左側下拉可選「單號、發送站、原件數、改件原因」)</label>
                 <div id="name-container"></div>
             </div>
             
@@ -438,7 +499,7 @@
             </div>
         </div>
 
-        <!-- 查詢頁 -->
+        <!-- 查詢頁 (表格標題改為「單位」) -->
         <div id="query-page" class="page">
             <div class="query-layout">
                 <div class="header-row">
@@ -499,7 +560,7 @@
                             <tr>
                                 <th class="th-date" onclick="toggleDateSort()">日期 <span id="sort-icon" style="font-size:10px">▲</span></th>
                                 <th class="th-type">貨態</th>
-                                <th class="th-unit">單位</th>
+                                <th class="th-unit">單位</th>   <!-- 標題改為「單位」 -->
                                 <th class="th-mult">倍數</th>
                                 <th class="th-amt">數量</th>
                                 <th class="th-name">名稱</th>
@@ -530,9 +591,10 @@
     let modifyTargetId = null;
     let isSortedAsc = true; 
     let todayYMD = new Date().toLocaleDateString('en-CA');
-    let currentUnit = '';          // 當前選擇的單位
+    let currentUnit = '';          // 當前選擇的單位（對應後端「數量單位」）
     const MAX_NAME_ROWS = 5;        // 最多5個名稱輸入
     let currentDriver = '';         // 當前登入的司機
+    let showFieldSelect = true;     // 是否顯示左側欄名下拉選單（全域切換）
 
     // 離線資料初始化
     try { const saved = localStorage.getItem('offlineData'); if(saved) offlineData = JSON.parse(saved); const cachedRaw = localStorage.getItem('rawDataCache'); if(cachedRaw) rawData = JSON.parse(cachedRaw); } catch(e) {}
@@ -604,7 +666,24 @@
     function logout() {
         localStorage.removeItem('savedUsername');
         localStorage.removeItem('savedPassword');
-        location.reload(); // 重新載入回到登入頁
+        location.reload();
+    }
+
+    // 切換欄名顯示
+    function toggleFieldSelects() {
+        showFieldSelect = document.getElementById('toggle-field').checked;
+        // 重新渲染名稱行（保留現有資料）
+        const rows = document.querySelectorAll('.name-row');
+        const items = [];
+        rows.forEach(row => {
+            const select = row.querySelector('.field-select');
+            const input = row.querySelector('.name-inp');
+            items.push({ 
+                select: select ? select.value : '', 
+                name: input ? input.value : '' 
+            });
+        });
+        renderNameRows(items);
     }
 
     // ---------- 初始化主應用 ----------
@@ -665,14 +744,48 @@
     }
     function updateWeek(dateId, weekId) { const d = document.getElementById(dateId).value; if(!d) return; const dt = new Date(d); const day = dt.getDay(); const sel = document.getElementById(weekId); if(sel) { sel.value = day; sel.className = 'week-select'; if(day === 6) sel.classList.add('wk-sat'); else if(day === 0) sel.classList.add('wk-sun'); else sel.classList.add('wk-normal'); } if (weekId === 'week-day') updateWeekDayOptions(d); }
     function changeDateByWeek(dateId, weekId) { const dateInput = document.getElementById(dateId); const weekSelect = document.getElementById(weekId); const targetDay = parseInt(weekSelect.value); if(isNaN(targetDay)) return; let current = new Date(dateInput.value || new Date()); const currentDay = current.getDay(); let diff = targetDay - currentDay; current.setDate(current.getDate() + diff); dateInput.value = current.toLocaleDateString('en-CA'); checkTodayColor(dateInput); weekSelect.className = 'week-select'; if(targetDay === 6) weekSelect.classList.add('wk-sat'); else if(targetDay === 0) weekSelect.classList.add('wk-sun'); else weekSelect.classList.add('wk-normal'); if (weekId === 'week-day') updateWeekDayOptions(dateInput.value); }
-    function setUnit(unit) { currentUnit = unit; document.getElementById('unit-btn-pieces').classList.remove('active-pieces'); document.getElementById('unit-btn-small').classList.remove('active-small'); document.getElementById('unit-btn-big').classList.remove('active-big'); if (unit === '件數') { document.getElementById('unit-btn-pieces').classList.add('active-pieces'); setTimeout(() => document.getElementById('amt').focus(), 100); } else if (unit === '小板') { document.getElementById('unit-btn-small').classList.add('active-small'); } else if (unit === '大板') { document.getElementById('unit-btn-big').classList.add('active-big'); } toggleMult(); updateSmartDropdowns(); }
+
+    // 設定單位按鈕 (新增模式時自動切換開關)
+    function setUnit(unit) {
+        currentUnit = unit;
+        // 更新按鈕 active 類別
+        document.getElementById('unit-btn-pieces').classList.remove('active-pieces');
+        document.getElementById('unit-btn-small').classList.remove('active-small');
+        document.getElementById('unit-btn-big').classList.remove('active-big');
+        if (unit === '件數') {
+            document.getElementById('unit-btn-pieces').classList.add('active-pieces');
+        } else if (unit === '小板') {
+            document.getElementById('unit-btn-small').classList.add('active-small');
+        } else if (unit === '大板') {
+            document.getElementById('unit-btn-big').classList.add('active-big');
+        }
+        toggleMult();      // 更新倍數顯示
+        updateSmartDropdowns(); // 更新名稱下拉
+
+        // 新增模式時，根據單位自動設定開關
+        if (modifyTargetId === null) {
+            if (unit === '件數') {
+                showFieldSelect = false;
+            } else if (unit === '小板' || unit === '大板') {
+                showFieldSelect = true;
+            }
+            document.getElementById('toggle-field').checked = showFieldSelect;
+
+            // 重新渲染名稱行，保留現有名稱輸入值（丟棄下拉選擇）
+            const inputs = document.querySelectorAll('.name-inp');
+            const items = Array.from(inputs).map(inp => ({ select: '', name: inp.value }));
+            renderNameRows(items);
+        }
+    }
+
     function toggleMult() { const u = currentUnit; const div = document.getElementById('mult-wrap'); const amtInput = document.getElementById('amt'); const multInput = document.getElementById('mult'); if(u === '' || u === '件數') { div.classList.remove('show'); multInput.value = 1; baseAmt = 0; amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; } else { div.classList.add('show'); if (u === '大板') baseAmt = 20; else if (u === '小板') baseAmt = 10; amtInput.readOnly = true; amtInput.classList.add('auto-calc'); calc(); setTimeout(() => { multInput.focus(); }, 150); } }
     function calc() { const m = parseFloat(document.getElementById('mult').value) || 0; if(baseAmt > 0) { const total = Math.round(baseAmt * m * 10) / 10; document.getElementById('amt').value = total || 0; } }
     function setType(t) { document.getElementById('type').value = t; document.getElementById('btn-in').className = (t=='收')?'type-btn active-in':'type-btn'; document.getElementById('btn-out').className = (t=='送')?'type-btn active-out':'type-btn'; updateSmartDropdowns(); }
     function clearUnitSelection() { currentUnit = ''; document.getElementById('unit-btn-pieces').classList.remove('active-pieces'); document.getElementById('unit-btn-small').classList.remove('active-small'); document.getElementById('unit-btn-big').classList.remove('active-big'); const div = document.getElementById('mult-wrap'); div.classList.remove('show'); document.getElementById('mult').value = 1; baseAmt = 0; const amtInput = document.getElementById('amt'); amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; }
 
-    // ---------- 欄名互斥 ----------
+    // ---------- 欄名互斥 (僅在顯示下拉時有效) ----------
     function updateFieldSelects() {
+        if (!showFieldSelect) return; // 不顯示下拉時不需互斥
         const rows = document.querySelectorAll('.name-row');
         const selectedFields = new Set();
         rows.forEach(row => {
@@ -712,34 +825,36 @@
         });
     }
 
-    // ---------- 名稱欄位動態函數 ----------
+    // ---------- 名稱欄位動態函數 (根據 showFieldSelect 決定是否建立下拉) ----------
     function createNameRow(selectVal = '', inputVal = '', index) {
         const row = document.createElement('div');
         row.className = 'name-row';
 
-        const select = document.createElement('select');
-        select.className = 'field-select';
-        const blankOpt = document.createElement('option');
-        blankOpt.value = '';
-        blankOpt.textContent = '';
-        select.appendChild(blankOpt);
-        
-        const items = ['單號', '發送站', '原件數', '改件原因'];
-        items.forEach(text => {
-            const opt = document.createElement('option');
-            opt.value = text;
-            opt.textContent = text;
-            select.appendChild(opt);
-        });
-        select.value = selectVal;
+        if (showFieldSelect) {
+            const select = document.createElement('select');
+            select.className = 'field-select';
+            const blankOpt = document.createElement('option');
+            blankOpt.value = '';
+            blankOpt.textContent = '';
+            select.appendChild(blankOpt);
+            
+            const items = ['單號', '發送站', '原件數', '改件原因'];
+            items.forEach(text => {
+                const opt = document.createElement('option');
+                opt.value = text;
+                opt.textContent = text;
+                select.appendChild(opt);
+            });
+            select.value = selectVal;
 
-        select.onchange = function() {
-            updateSmartDropdowns();
-            updateFieldSelects();
-            setTimeout(() => inp.focus(), 50);
-        };
+            select.onchange = function() {
+                updateSmartDropdowns();
+                updateFieldSelects();
+                setTimeout(() => inp.focus(), 50);
+            };
 
-        row.appendChild(select);
+            row.appendChild(select);
+        }
 
         const inp = document.createElement('input');
         inp.className = 'name-inp';
@@ -840,24 +955,29 @@
         
         const rows = document.querySelectorAll('.name-row');
         rows.forEach((row, idx) => {
-            const select = row.querySelector('.field-select');
+            const select = showFieldSelect ? row.querySelector('.field-select') : null;
             const inp = row.querySelector('.name-inp');
             if (!inp) return;
             const listId = inp.getAttribute('list');
             const datalist = document.getElementById(listId);
             if (!datalist) return;
 
-            const selectedField = select ? select.value : '';
-
             let options = [];
-            if (selectedField === '') {
-                // 欄名未選：過濾掉包含 ":" 的字串
-                const values = allNames.filter(name => name.indexOf(':') === -1);
-                options = [...new Set(values)];
+            if (showFieldSelect && select) {
+                const selectedField = select.value;
+                if (selectedField === '') {
+                    // 欄名未選：過濾掉包含 ":" 的字串
+                    const values = allNames.filter(name => name.indexOf(':') === -1);
+                    options = [...new Set(values)];
+                } else {
+                    const prefix = selectedField + ':';
+                    const matched = allNames.filter(name => name.startsWith(prefix));
+                    const values = matched.map(name => name.substring(prefix.length));
+                    options = [...new Set(values)];
+                }
             } else {
-                const prefix = selectedField + ':';
-                const matched = allNames.filter(name => name.startsWith(prefix));
-                const values = matched.map(name => name.substring(prefix.length));
+                // 不顯示下拉時，下拉清單只顯示不帶冒號的值（避免出現前綴）
+                const values = allNames.filter(name => name.indexOf(':') === -1);
                 options = [...new Set(values)];
             }
 
@@ -880,6 +1000,9 @@
         document.getElementById('type').value = '';
         document.getElementById('btn-in').className = 'type-btn';
         document.getElementById('btn-out').className = 'type-btn';
+        // 重置開關為預設（件數時關閉，但重置時尚未選單位，先設為關閉？）
+        showFieldSelect = false;
+        document.getElementById('toggle-field').checked = false;
         renderNameRows([]);
         
         const btnSubmit = document.getElementById('btn-submit');
@@ -931,6 +1054,11 @@
                 return { select: '', name: part };
             }
         });
+
+        // 根據是否有冒號決定開關狀態
+        showFieldSelect = nameStr.indexOf(':') !== -1;
+        document.getElementById('toggle-field').checked = showFieldSelect;
+
         renderNameRows(items);
     }
 
@@ -953,7 +1081,7 @@
         const rows = document.querySelectorAll('.name-row');
         let names = [];
         rows.forEach(row => {
-            const select = row.querySelector('.field-select');
+            const select = showFieldSelect ? row.querySelector('.field-select') : null;
             const input = row.querySelector('.name-inp');
             if (input.value.trim() !== '') {
                 const selectVal = select ? select.value : '';
@@ -973,7 +1101,7 @@
             driver: currentDriver,
             type: document.getElementById('type').value,
             count: document.getElementById('cnt').value,
-            unit: currentUnit,
+            '數量單位': currentUnit,   // 後端欄位名稱為「數量單位」
             multiplier: document.getElementById('mult').value,
             amount: document.getElementById('amt').value,
             name: names.join(',')
@@ -1044,9 +1172,9 @@
             try {
                 let payload;
                 if (item.action === 'add') {
-                    payload = { action: 'add', date: item.date, driver: item.driver, type: item.type, count: item.count, unit: item.unit, multiplier: item.multiplier, amount: item.amount, name: item.name };
+                    payload = { action: 'add', date: item.date, driver: item.driver, type: item.type, count: item.count, '數量單位': item['數量單位'], multiplier: item.multiplier, amount: item.amount, name: item.name };
                 } else if (item.action === 'edit') {
-                    payload = { action: 'edit', id: item.originalId, date: item.date, driver: item.driver, type: item.type, count: item.count, unit: item.unit, multiplier: item.multiplier, amount: item.amount, name: item.name };
+                    payload = { action: 'edit', id: item.originalId, date: item.date, driver: item.driver, type: item.type, count: item.count, '數量單位': item['數量單位'], multiplier: item.multiplier, amount: item.amount, name: item.name };
                 } else if (item.action === 'delete') {
                     payload = { action: 'delete', ids: [item.originalId] };
                 }
@@ -1076,14 +1204,18 @@
                     driver: item["司機"], 
                     type: item["收送狀態"], 
                     count: item["筆數"], 
-                    unit: item["單位"], 
+                    unit: item["數量單位"],   // 後端欄位名為「數量單位」
                     multiplier: item["倍數"], 
                     amount: item["數量"], 
                     name: item["名稱"], 
                     _sortIndex: index 
                 }));
             } else if (Array.isArray(json)) {
-                rawData = json.map((item, index) => ({ ...item, _sortIndex: index }));
+                rawData = json.map((item, index) => ({ 
+                    ...item, 
+                    unit: item["數量單位"], 
+                    _sortIndex: index 
+                }));
             } else {
                 rawData = generateSampleData();
                 showStatus("使用範例資料", "ok", 1500);
