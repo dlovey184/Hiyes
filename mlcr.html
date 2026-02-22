@@ -99,8 +99,8 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%; /* 【修正】使用 100% 避免 vw 產生的橫向捲動軸 */
+            height: 100%; /* 【關鍵修正】使用 100% 取代 100vh，避開手機工具列吃高度 */
             background: white;
             z-index: 200;
             display: none;      /* 預設隱藏 */
@@ -129,14 +129,13 @@
             pointer-events: auto;
         }
 
-        /* ========== 報表1（月件）原始樣式，加上 #report1 前綴，內容完全未改 ========= */
+        /* ========== 報表1（月件）原始樣式 ========= */
         #report1 {
             height: 100%;
             width: 100%;
-            background-color: #fff;      /* 原 body 背景 */
+            background-color: #fff;
             display: block;
         }
-        /* 以下完全複製原始樣式，僅在每個選擇器前加上 #report1 */
         #report1 .table-wrapper {
             height: 100%;
             width: 100%;
@@ -223,12 +222,12 @@
             font-size: clamp(12px, 1.5vh, 14px);
         }
 
-        /* ========== 報表2（板件）原始樣式，加上 #report2 前綴，內容完全未改 ========= */
+        /* ========== 報表2（板件）原始樣式 ========= */
         #report2 {
             height: 100%;
             width: 100%;
-            background-color: #333;      /* 原 body 背景 */
-            display: flex;
+            background-color: #333;
+            display: flex; /* 必須保持 flex 才能置中與壓縮高度 */
             justify-content: center;
             align-items: center;
             overflow: hidden;
@@ -369,7 +368,6 @@
     </style>
 </head>
 <body>
-    <!-- 選擇層 -->
     <div class="selection-screen" id="selectionScreen">
         <div class="selection-card">
             <h2>📋 快遞報表</h2>
@@ -384,12 +382,9 @@
         </div>
     </div>
 
-    <!-- 報表層（內含兩張原始報表） -->
     <div id="reportContainer" class="report-container">
-        <!-- 固定退出按鈕 -->
         <button class="fixed-exit" id="exitReportBtn">← 退出</button>
 
-        <!-- 月件報表（完全原始結構，僅加入月份動態標記） -->
         <div id="report1" style="display: none;">
             <div class="table-wrapper">
                 <div class="page">
@@ -415,7 +410,6 @@
             </div>
         </div>
 
-        <!-- 板件報表（完全原始結構，僅加入月份動態標記） -->
         <div id="report2" style="display: none;">
             <div class="table-wrapper">
                 <div class="container">
@@ -457,7 +451,6 @@
 
     <script>
         (function() {
-            // ----- 1. 填充報表1的16行（完全原始邏輯）-----
             function fillReport1() {
                 const tbody = document.getElementById('tbody1');
                 if (!tbody) return;
@@ -475,7 +468,6 @@
                 tbody.innerHTML = html;
             }
 
-            // ----- 2. 填充報表2的35行（完全原始邏輯）-----
             function fillReport2() {
                 const tbody = document.getElementById('tbody2');
                 if (!tbody) return;
@@ -496,7 +488,6 @@
                 tbody.innerHTML = html;
             }
 
-            // ----- 3. 民國年更新函數（僅修改標題中的數字）-----
             function updateYearMonth() {
                 const picker = document.getElementById('monthPicker');
                 if (!picker || !picker.value) return;
@@ -508,7 +499,6 @@
                 document.getElementById('month2').textContent = month;
             }
 
-            // ----- 4. 初始化表格與預設月份（當月）-----
             fillReport1();
             fillReport2();
             const today = new Date();
@@ -520,7 +510,6 @@
                 updateYearMonth();
             }
 
-            // ----- 5. 選擇層按鈕：直接進入對應報表 -----
             const btnMonth = document.getElementById('typeMonthBtn');
             const btnBoard = document.getElementById('typeBoardBtn');
             const reportContainer = document.getElementById('reportContainer');
@@ -529,7 +518,7 @@
             const report2 = document.getElementById('report2');
 
             function showReport(type) {
-                updateYearMonth(); // 更新月份標題
+                updateYearMonth();
                 if (type === 'month') {
                     report1.style.display = 'block';
                     report2.style.display = 'none';
@@ -537,7 +526,8 @@
                     btnBoard.classList.remove('active');
                 } else {
                     report1.style.display = 'none';
-                    report2.style.display = 'block';
+                    /* 【關鍵修正】把原本的 block 改成 flex，讓板件表排版恢復正常 */
+                    report2.style.display = 'flex'; 
                     btnBoard.classList.add('active');
                     btnMonth.classList.remove('active');
                 }
@@ -548,13 +538,11 @@
             btnMonth.addEventListener('click', () => showReport('month'));
             btnBoard.addEventListener('click', () => showReport('board'));
 
-            // ----- 6. 退出按鈕：返回選擇層 -----
             document.getElementById('exitReportBtn').addEventListener('click', function() {
                 reportContainer.classList.remove('show');
                 selectionScreen.style.display = 'flex';
             });
 
-            // ----- 7. 月份變更時同步標題（選擇層）-----
             picker.addEventListener('change', updateYearMonth);
         })();
     </script>
