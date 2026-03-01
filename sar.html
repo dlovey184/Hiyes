@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>阿裕物流·欄名智慧切換版 (PRO MAX v76)</title>
+    <title>阿裕物流·欄名智慧切換版 + 圖片上傳 (完整功能)</title>
     <style>
         /* --- 變數與基礎 --- */
         :root {
@@ -186,18 +186,20 @@
         .col-mult { flex: 0; width: 0; opacity: 0; overflow: hidden; transition: flex 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease; }
         .col-mult.show { flex: 0.8; margin-left: 2px; opacity: 1; } 
 
-        /* 切換開關樣式 */
+        /* 切換開關 + 圖片區 */
         .toggle-container {
             display: flex;
             align-items: center;
             margin-bottom: 8px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         .toggle-switch {
             position: relative;
             display: inline-block;
             width: 50px;
             height: 24px;
-            margin-right: 8px;
+            margin-right: 0;
         }
         .toggle-switch input {
             opacity: 0;
@@ -236,6 +238,83 @@
             font-size: 14px;
             font-weight: bold;
             color: #444;
+            margin-right: auto;
+        }
+        .image-upload-btn {
+            background: #f1f3f4;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #1a73e8;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .image-upload-btn:active {
+            background: #e0e0e0;
+        }
+        .image-upload-btn:disabled,
+        .image-delete-btn:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .image-preview-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        #image-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .image-delete-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            background: #d93025;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 12px;
+            line-height: 18px;
+            text-align: center;
+            cursor: pointer;
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .image-delete-btn.show {
+            display: block;
+        }
+        /* 圖片放大預覽 modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+        }
+        .image-modal.show {
+            display: flex;
+        }
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         /* --- 名稱區塊：固定高度，內部滾動 --- */
@@ -477,13 +556,21 @@
                 </div>
             </div>
 
-            <!-- 全域切換開關：啟用欄名 -->
+            <!-- 全域切換開關：啟用欄名 + 圖片上傳區域 (含刪除按鈕與預覽) -->
             <div class="toggle-container">
                 <label class="toggle-switch">
                     <input type="checkbox" id="toggle-field" checked onchange="toggleFieldSelects()">
                     <span class="slider"></span>
                 </label>
                 <span class="toggle-label">啟用欄名</span>
+                
+                <button type="button" id="image-upload-trigger" class="image-upload-btn" onclick="document.getElementById('image-input').click()" title="拍照或選擇圖片">📷 拍照/選圖</button>
+                <input type="file" id="image-input" accept="image/*" capture="camera" style="display:none" onchange="handleImageSelect(event)">
+                
+                <div class="image-preview-wrapper">
+                    <div id="image-preview" onclick="showImageModal()" style="background-image: none;"></div>
+                    <button id="image-delete-btn" class="image-delete-btn" onclick="clearImagePreview()" title="刪除圖片">✕</button>
+                </div>
             </div>
 
             <!-- 名稱區塊 (固定高度) -->
@@ -499,7 +586,7 @@
             </div>
         </div>
 
-        <!-- 查詢頁 (表格標題改為「單位」) -->
+        <!-- 查詢頁 -->
         <div id="query-page" class="page">
             <div class="query-layout">
                 <div class="header-row">
@@ -560,7 +647,7 @@
                             <tr>
                                 <th class="th-date" onclick="toggleDateSort()">日期 <span id="sort-icon" style="font-size:10px">▲</span></th>
                                 <th class="th-type">貨態</th>
-                                <th class="th-unit">單位</th>   <!-- 標題改為「單位」 -->
+                                <th class="th-unit">單位</th>
                                 <th class="th-mult">倍數</th>
                                 <th class="th-amt">數量</th>
                                 <th class="th-name">名稱</th>
@@ -577,6 +664,11 @@
         <button id="btn-input" class="tab-btn active" onclick="showPage('input-page')"><span>✍️</span>填報</button>
         <button id="btn-query" class="tab-btn" onclick="showPage('query-page')"><span>📋</span>查詢</button>
     </div>
+</div>
+
+<!-- 圖片放大預覽 modal -->
+<div id="image-modal" class="image-modal" onclick="this.classList.remove('show')">
+    <img id="modal-img" src="" alt="預覽">
 </div>
 
 <script>
@@ -596,8 +688,16 @@
     let currentDriver = '';         // 當前登入的司機
     let showFieldSelect = true;     // 是否顯示左側欄名下拉選單（全域切換）
 
+    // 圖片相關變數
+    let selectedImageBase64 = '';   // 存放新選圖片的 base64 (不含 prefix)
+    let selectedImageFilename = ''; // 原始檔名
+    let originalImageUrl = '';      // 修改模式下，原本的圖片位址（用於判斷是否刪除）
+
     // 離線資料初始化
     try { const saved = localStorage.getItem('offlineData'); if(saved) offlineData = JSON.parse(saved); const cachedRaw = localStorage.getItem('rawDataCache'); if(cachedRaw) rawData = JSON.parse(cachedRaw); } catch(e) {}
+
+    // 備份名稱欄位配置 (用於開關切換時保留欄名選擇)
+    window.nameConfigBackup = [];
 
     // ---------- 登入函數 ----------
     function login(remember = true) {
@@ -623,7 +723,6 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // 記住帳密
                 if (remember) {
                     localStorage.setItem('savedUsername', username);
                     localStorage.setItem('savedPassword', password);
@@ -655,39 +754,61 @@
         if (savedUsername && savedPassword) {
             document.getElementById('login-username').value = savedUsername;
             document.getElementById('login-password').value = savedPassword;
-            login(false); // 不重複儲存
+            login(false);
         } else {
             document.getElementById('login-page').style.display = 'flex';
             document.getElementById('app-container').style.display = 'none';
         }
     }
 
-    // 登出函數
     function logout() {
         localStorage.removeItem('savedUsername');
         localStorage.removeItem('savedPassword');
         location.reload();
     }
 
-    // 切換欄名顯示
+    // 切換欄名顯示 (保留輸入內容與欄名選擇)
     function toggleFieldSelects() {
+        const wasEnabled = showFieldSelect;
         showFieldSelect = document.getElementById('toggle-field').checked;
-        // 重新渲染名稱行（保留現有資料）
+
         const rows = document.querySelectorAll('.name-row');
-        const items = [];
+        let currentConfig = [];
         rows.forEach(row => {
             const select = row.querySelector('.field-select');
             const input = row.querySelector('.name-inp');
-            items.push({ 
+            currentConfig.push({ 
                 select: select ? select.value : '', 
                 name: input ? input.value : '' 
             });
         });
-        renderNameRows(items);
+
+        if (wasEnabled && !showFieldSelect) {
+            window.nameConfigBackup = currentConfig.map(item => ({ select: item.select, name: item.name }));
+            renderNameRows(currentConfig.map(item => ({ select: '', name: item.name })));
+        } else if (!wasEnabled && showFieldSelect) {
+            if (window.nameConfigBackup.length > 0) {
+                const currentInputs = currentConfig.map(item => item.name);
+                const newConfig = [];
+                for (let i = 0; i < currentInputs.length; i++) {
+                    if (i < window.nameConfigBackup.length) {
+                        newConfig.push({ select: window.nameConfigBackup[i].select, name: currentInputs[i] });
+                    } else {
+                        newConfig.push({ select: '', name: currentInputs[i] });
+                    }
+                }
+                renderNameRows(newConfig);
+            } else {
+                renderNameRows(currentConfig.map(item => ({ select: '', name: item.name })));
+            }
+        } else {
+            renderNameRows(currentConfig);
+        }
     }
 
     // ---------- 初始化主應用 ----------
     function initApp() {
+        window.nameConfigBackup = [];
         updateOnlineStatus();
         todayYMD = new Date().toLocaleDateString('en-CA');
         
@@ -714,6 +835,7 @@
 
         clearUnitSelection();
         renderNameRows([]);
+        clearImagePreview(); // 清除圖片
 
         if(rawData.length > 0) updateSmartDropdowns();
 
@@ -731,10 +853,14 @@
     window.addEventListener('online', () => { updateOnlineStatus(); syncOfflineData(); });
     window.addEventListener('offline', updateOnlineStatus);
     function updateOnlineStatus() {
-        if (!navigator.onLine) showStatus('⚠️ 無網路連線 - 啟用離線模式', 'err', 0); else document.getElementById('status-bar').style.display = 'none';
+        const online = navigator.onLine;
+        if (!online) showStatus('⚠️ 無網路連線 - 啟用離線模式', 'err', 0); else document.getElementById('status-bar').style.display = 'none';
         const btn = document.getElementById('btn-submit');
-        if(!navigator.onLine && !modifyTargetId) { btn.innerText = "💾 送出 (離線)"; btn.classList.add('offline-mode'); } 
+        if(!online && !modifyTargetId) { btn.innerText = "💾 送出 (離線)"; btn.classList.add('offline-mode'); } 
         else { btn.classList.remove('offline-mode'); if(!modifyTargetId) btn.innerText = "💾 送出"; }
+        // 圖片相關按鈕：離線時禁用
+        document.getElementById('image-upload-trigger').disabled = !online;
+        document.getElementById('image-delete-btn').disabled = !online;
     }
     function checkTodayColor(input) { if (input.value === todayYMD) input.classList.add('is-today'); else input.classList.remove('is-today'); }
     function updateWeekDayOptions(dateStr) {
@@ -745,10 +871,8 @@
     function updateWeek(dateId, weekId) { const d = document.getElementById(dateId).value; if(!d) return; const dt = new Date(d); const day = dt.getDay(); const sel = document.getElementById(weekId); if(sel) { sel.value = day; sel.className = 'week-select'; if(day === 6) sel.classList.add('wk-sat'); else if(day === 0) sel.classList.add('wk-sun'); else sel.classList.add('wk-normal'); } if (weekId === 'week-day') updateWeekDayOptions(d); }
     function changeDateByWeek(dateId, weekId) { const dateInput = document.getElementById(dateId); const weekSelect = document.getElementById(weekId); const targetDay = parseInt(weekSelect.value); if(isNaN(targetDay)) return; let current = new Date(dateInput.value || new Date()); const currentDay = current.getDay(); let diff = targetDay - currentDay; current.setDate(current.getDate() + diff); dateInput.value = current.toLocaleDateString('en-CA'); checkTodayColor(dateInput); weekSelect.className = 'week-select'; if(targetDay === 6) weekSelect.classList.add('wk-sat'); else if(targetDay === 0) weekSelect.classList.add('wk-sun'); else weekSelect.classList.add('wk-normal'); if (weekId === 'week-day') updateWeekDayOptions(dateInput.value); }
 
-    // 設定單位按鈕 (新增模式時自動切換開關)
     function setUnit(unit) {
         currentUnit = unit;
-        // 更新按鈕 active 類別
         document.getElementById('unit-btn-pieces').classList.remove('active-pieces');
         document.getElementById('unit-btn-small').classList.remove('active-small');
         document.getElementById('unit-btn-big').classList.remove('active-big');
@@ -759,10 +883,9 @@
         } else if (unit === '大板') {
             document.getElementById('unit-btn-big').classList.add('active-big');
         }
-        toggleMult();      // 更新倍數顯示
-        updateSmartDropdowns(); // 更新名稱下拉
+        toggleMult();
+        updateSmartDropdowns();
 
-        // 新增模式時，根據單位自動設定開關
         if (modifyTargetId === null) {
             if (unit === '件數') {
                 showFieldSelect = false;
@@ -771,7 +894,6 @@
             }
             document.getElementById('toggle-field').checked = showFieldSelect;
 
-            // 重新渲染名稱行，保留現有名稱輸入值（丟棄下拉選擇）
             const inputs = document.querySelectorAll('.name-inp');
             const items = Array.from(inputs).map(inp => ({ select: '', name: inp.value }));
             renderNameRows(items);
@@ -783,9 +905,8 @@
     function setType(t) { document.getElementById('type').value = t; document.getElementById('btn-in').className = (t=='收')?'type-btn active-in':'type-btn'; document.getElementById('btn-out').className = (t=='送')?'type-btn active-out':'type-btn'; updateSmartDropdowns(); }
     function clearUnitSelection() { currentUnit = ''; document.getElementById('unit-btn-pieces').classList.remove('active-pieces'); document.getElementById('unit-btn-small').classList.remove('active-small'); document.getElementById('unit-btn-big').classList.remove('active-big'); const div = document.getElementById('mult-wrap'); div.classList.remove('show'); document.getElementById('mult').value = 1; baseAmt = 0; const amtInput = document.getElementById('amt'); amtInput.readOnly = false; amtInput.classList.remove('auto-calc'); amtInput.placeholder = "量"; document.getElementById('amt').value = ''; }
 
-    // ---------- 欄名互斥 (僅在顯示下拉時有效) ----------
     function updateFieldSelects() {
-        if (!showFieldSelect) return; // 不顯示下拉時不需互斥
+        if (!showFieldSelect) return;
         const rows = document.querySelectorAll('.name-row');
         const selectedFields = new Set();
         rows.forEach(row => {
@@ -825,7 +946,7 @@
         });
     }
 
-    // ---------- 名稱欄位動態函數 (根據 showFieldSelect 決定是否建立下拉) ----------
+    // ---------- 名稱欄位動態函數 ----------
     function createNameRow(selectVal = '', inputVal = '', index) {
         const row = document.createElement('div');
         row.className = 'name-row';
@@ -922,15 +1043,24 @@
                 addNameRow();
             }
         }
+
+        if (showFieldSelect) {
+            const config = [];
+            rows.forEach(row => {
+                const select = row.querySelector('.field-select');
+                const input = row.querySelector('.name-inp');
+                config.push({ select: select ? select.value : '', name: input ? input.value : '' });
+            });
+            window.nameConfigBackup = config;
+        }
     }
 
-    // ---------- 智慧下拉：依據司機、收送、單位過濾，且小板大板視為同一組 ----------
+    // ---------- 智慧下拉 ----------
     function updateSmartDropdowns() {
         if (!rawData) return;
         const curDriver = document.getElementById('driver').value;
         const curType = document.getElementById('type').value; 
         
-        // 單位過濾條件：若 currentUnit 為小板或大板，則允許兩者；否則只允許完全匹配
         const unitFilter = (item) => {
             if (!currentUnit) return true;
             if (currentUnit === '小板' || currentUnit === '大板') {
@@ -940,17 +1070,14 @@
             }
         };
 
-        // 從線上資料收集符合條件的名稱
         let onlineNames = rawData
             .filter(d => d.driver === curDriver && (curType ? d.type === curType : true) && unitFilter(d))
             .map(d => d.name).join(',').split(',');
         
-        // 從離線資料收集
         let offlineNames = offlineData
             .filter(d => (d.action === 'add' || d.action === 'edit') && d.driver === curDriver && (curType ? d.type === curType : true) && unitFilter(d))
             .map(d => d.name).join(',').split(',');
         
-        // 合併所有名稱，並過濾掉空字串
         let allNames = [...onlineNames, ...offlineNames].map(n => n.trim()).filter(n => n);
         
         const rows = document.querySelectorAll('.name-row');
@@ -966,7 +1093,6 @@
             if (showFieldSelect && select) {
                 const selectedField = select.value;
                 if (selectedField === '') {
-                    // 欄名未選：過濾掉包含 ":" 的字串
                     const values = allNames.filter(name => name.indexOf(':') === -1);
                     options = [...new Set(values)];
                 } else {
@@ -976,7 +1102,6 @@
                     options = [...new Set(values)];
                 }
             } else {
-                // 不顯示下拉時，下拉清單只顯示不帶冒號的值（避免出現前綴）
                 const values = allNames.filter(name => name.indexOf(':') === -1);
                 options = [...new Set(values)];
             }
@@ -990,8 +1115,50 @@
         });
     }
 
+    // ---------- 圖片處理函數 ----------
+    function handleImageSelect(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            clearImagePreview();
+            return;
+        }
+        selectedImageFilename = file.name;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            selectedImageBase64 = e.target.result.split(',')[1];
+            const preview = document.getElementById('image-preview');
+            preview.style.backgroundImage = `url(${e.target.result})`;
+            document.getElementById('image-delete-btn').classList.add('show');
+            // 如果有原本的圖片網址，清除 originalImageUrl 以免送出時誤判
+            originalImageUrl = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearImagePreview() {
+        selectedImageBase64 = '';
+        selectedImageFilename = '';
+        originalImageUrl = ''; // 刪除後視為無圖片
+        const preview = document.getElementById('image-preview');
+        preview.style.backgroundImage = '';
+        document.getElementById('image-delete-btn').classList.remove('show');
+        document.getElementById('image-input').value = '';
+    }
+
+    function showImageModal() {
+        const preview = document.getElementById('image-preview');
+        const bgImage = preview.style.backgroundImage;
+        if (!bgImage || bgImage === 'none') return;
+        // 從 background-image 中取出 url
+        const url = bgImage.slice(5, -2); // 去除 url(" 和 ")
+        const modalImg = document.getElementById('modal-img');
+        modalImg.src = url;
+        document.getElementById('image-modal').classList.add('show');
+    }
+
     // ---------- 表單重置與修改載入 ----------
     function resetForm() {
+        window.nameConfigBackup = [];
         document.getElementById('amt').value = '';
         document.getElementById('cnt').value = '';
         document.getElementById('cnt').readOnly = true;
@@ -1000,10 +1167,10 @@
         document.getElementById('type').value = '';
         document.getElementById('btn-in').className = 'type-btn';
         document.getElementById('btn-out').className = 'type-btn';
-        // 重置開關為預設（件數時關閉，但重置時尚未選單位，先設為關閉？）
         showFieldSelect = false;
         document.getElementById('toggle-field').checked = false;
         renderNameRows([]);
+        clearImagePreview();
         
         const btnSubmit = document.getElementById('btn-submit');
         const btnCancel = document.getElementById('btn-cancel-mod');
@@ -1055,11 +1222,20 @@
             }
         });
 
-        // 根據是否有冒號決定開關狀態
         showFieldSelect = nameStr.indexOf(':') !== -1;
         document.getElementById('toggle-field').checked = showFieldSelect;
 
         renderNameRows(items);
+
+        // 處理圖片預覽（若後端有回傳 imageUrl）
+        if (targetData.imageUrl) {
+            originalImageUrl = targetData.imageUrl;
+            const preview = document.getElementById('image-preview');
+            preview.style.backgroundImage = `url(${targetData.imageUrl})`;
+            document.getElementById('image-delete-btn').classList.add('show');
+        } else {
+            clearImagePreview();
+        }
     }
 
     function cancelModify(doRefresh = true) {
@@ -1101,15 +1277,32 @@
             driver: currentDriver,
             type: document.getElementById('type').value,
             count: document.getElementById('cnt').value,
-            '數量單位': currentUnit,   // 後端欄位名稱為「數量單位」
+            '數量單位': currentUnit,
             multiplier: document.getElementById('mult').value,
             amount: document.getElementById('amt').value,
             name: names.join(',')
         };
 
+        // 圖片處理
+        if (selectedImageBase64) {
+            dataObj.imageBase64 = selectedImageBase64;
+            dataObj.imageFilename = selectedImageFilename;
+        } else if (originalImageUrl && !selectedImageBase64) {
+            // 原本有圖片但使用者沒有新選圖片，保留原圖片（不發送 imageDeleted）
+            // 若使用者刪除了圖片（clearImagePreview 會清掉 originalImageUrl），則會進入以下判斷
+        }
+        // 如果原本有圖片但已被刪除（originalImageUrl 被清空，且無新圖片），則標記刪除
+        if (!selectedImageBase64 && !originalImageUrl && modifyTargetId) {
+            dataObj.imageDeleted = true; // 通知後端清除圖片欄位
+        }
+
         if(!dataObj.type || !dataObj.amount) return alert('收送與數量為必填！');
 
         if (!navigator.onLine) {
+            if (selectedImageBase64) {
+                alert('離線模式無法上傳圖片，請連線後再試。');
+                return;
+            }
             if (modifyTargetId) {
                 const existingIndex = offlineData.findIndex(d => d.id === modifyTargetId);
                 if (existingIndex !== -1) {
@@ -1178,6 +1371,10 @@
                 } else if (item.action === 'delete') {
                     payload = { action: 'delete', ids: [item.originalId] };
                 }
+                if (item.imageBase64) {
+                    payload.imageBase64 = item.imageBase64;
+                    payload.imageFilename = item.imageFilename;
+                }
                 const response = await fetch(API_URL, { method:'POST', body:JSON.stringify(payload) });
                 const result = await response.json();
                 if (result.success) {
@@ -1204,16 +1401,18 @@
                     driver: item["司機"], 
                     type: item["收送狀態"], 
                     count: item["筆數"], 
-                    unit: item["數量單位"],   // 後端欄位名為「數量單位」
+                    unit: item["數量單位"],
                     multiplier: item["倍數"], 
                     amount: item["數量"], 
                     name: item["名稱"], 
+                    imageUrl: item["圖片位址"],
                     _sortIndex: index 
                 }));
             } else if (Array.isArray(json)) {
                 rawData = json.map((item, index) => ({ 
                     ...item, 
                     unit: item["數量單位"], 
+                    imageUrl: item["圖片位址"],
                     _sortIndex: index 
                 }));
             } else {
@@ -1235,11 +1434,11 @@
     function generateSampleData() {
         const today = todayYMD;
         return [
-            { id: "1", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "5", name: "單號:ABC123", _sortIndex: 0 },
-            { id: "2", date: today, driver: currentDriver || "尤創裕", type: "送", count: "2", unit: "小板", multiplier: "2", amount: "20", name: "發送站:台北", _sortIndex: 1 },
-            { id: "3", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "大板", multiplier: "1", amount: "20", name: "原件數:5", _sortIndex: 2 },
-            { id: "4", date: today, driver: currentDriver || "尤創裕", type: "送", count: "1", unit: "件數", multiplier: "1", amount: "3", name: "改件原因:破損", _sortIndex: 3 },
-            { id: "5", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "2", name: "一般名稱", _sortIndex: 4 }
+            { id: "1", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "5", name: "單號:ABC123", imageUrl: "" },
+            { id: "2", date: today, driver: currentDriver || "尤創裕", type: "送", count: "2", unit: "小板", multiplier: "2", amount: "20", name: "發送站:台北", imageUrl: "" },
+            { id: "3", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "大板", multiplier: "1", amount: "20", name: "原件數:5", imageUrl: "" },
+            { id: "4", date: today, driver: currentDriver || "尤創裕", type: "送", count: "1", unit: "件數", multiplier: "1", amount: "3", name: "改件原因:破損", imageUrl: "" },
+            { id: "5", date: today, driver: currentDriver || "尤創裕", type: "收", count: "1", unit: "件數", multiplier: "1", amount: "2", name: "一般名稱", imageUrl: "" }
         ];
     }
 
@@ -1563,4 +1762,4 @@
     };
 </script>
 </body>
-    </html>
+                            </html>
